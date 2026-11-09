@@ -1,0 +1,4 @@
+# Copia este archivo como ".dev.vars" para probar el sitio en tu computadora.
+# En Cloudflare (producción) estos valores se guardan como "secrets" (ver README).
+ADMIN_PASSWORD=cambia-esta-clave
+SESSION_SECRET=una-cadena-larga-y-aleatoria-de-al-menos-32-caracteres

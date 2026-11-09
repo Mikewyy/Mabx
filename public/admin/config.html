@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <title>Ofertas, categorías y WhatsApp · Panel Mabx</title>
+</head>
+<body>
+  <div class="admin">
+    <div data-sidebar></div>
+    <main class="admin-main">
+      <div class="admin-head">
+        <div>
+          <p class="kicker">Panel · Mabx</p>
+          <h1>Ofertas, categorías y WhatsApp</h1>
+        </div>
+      </div>
+
+      <div class="config-grid">
+        <!-- WHATSAPP Y CONTACTO -->
+        <form class="panel" id="whatsapp" style="grid-column:1 / -1;scroll-margin-top:80px">
+          <p class="secttl">Configuración de pedidos</p>
+          <h2 style="font-size:24px;font-weight:700;margin:0 0 20px">WhatsApp y contacto</h2>
+          <div class="wa-grid">
+            <div>
+              <label class="f" for="whatsapp_number">Número de WhatsApp</label>
+              <input id="whatsapp_number" name="whatsapp_number" type="tel" inputmode="tel" placeholder="593 99 123 4567" required>
+              <p class="help">Con código de país, sin el 0 inicial (Ecuador: 593…).</p>
+            </div>
+            <div>
+              <label class="f" for="whatsapp_message">Mensaje base del pedido</label>
+              <textarea id="whatsapp_message" name="whatsapp_message" rows="4"></textarea>
+              <p class="help">Usa {productos} y {total}; se reemplazan automáticamente con lo que el cliente eligió.</p>
+            </div>
+          </div>
+          <div class="two" style="margin-top:20px">
+            <div><label class="f" for="instagram">Instagram (enlace)</label><input id="instagram" name="instagram" type="url" placeholder="https://instagram.com/mabx"></div>
+            <div><label class="f" for="tiktok">TikTok (enlace)</label><input id="tiktok" name="tiktok" type="url" placeholder="https://tiktok.com/@mabx"></div>
+            <div><label class="f" for="facebook">Facebook (enlace)</label><input id="facebook" name="facebook" type="url" placeholder="https://facebook.com/mabx"></div>
+            <div><label class="f" for="shipping_info">Envíos (texto que ve el cliente)</label><input id="shipping_info" name="shipping_info" type="text" placeholder="Envíos a todo el Ecuador"></div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px">
+            <button class="btn btn-ac" type="submit">Guardar cambios</button>
+            <a class="btn btn-gh" id="wa-test" href="#" target="_blank" rel="noopener">Probar enlace de WhatsApp</a>
+          </div>
+        </form>
+
+        <!-- CATEGORÍAS -->
+        <section class="panel" id="categorias" style="scroll-margin-top:80px">
+          <p class="secttl">Organización</p>
+          <h2 style="font-size:22px;font-weight:700;margin:0 0 16px">Categorías</h2>
+          <div class="chips" id="cats" style="gap:10px"></div>
+          <form class="inline-form" id="cat-form">
+            <label class="sr-only" for="cat-name">Nueva categoría</label>
+            <input id="cat-name" type="text" maxlength="60" placeholder="Nueva categoría (ej. Leggings)" required>
+            <button class="btn btn-gh btn-sm" type="submit" id="cat-add"></button>
+          </form>
+        </section>
+
+        <!-- OFERTAS / PROMOCIONES -->
+        <section class="panel" id="ofertas" style="scroll-margin-top:80px">
+          <p class="secttl">Promociones</p>
+          <h2 style="font-size:22px;font-weight:700;margin:0 0 8px">Ofertas activas</h2>
+          <p class="help" style="margin:0 0 8px">Se muestran en el banner del inicio. El descuento de cada prenda se pone en su “Precio de oferta”.</p>
+          <div id="promos"></div>
+          <form class="inline-form" id="promo-form">
+            <label class="sr-only" for="promo-title">Título de la promoción</label>
+            <input id="promo-title" type="text" maxlength="80" placeholder="Ej. -20% Camisetas Mujer" required>
+            <label class="sr-only" for="promo-detail">Detalle</label>
+            <input id="promo-detail" type="text" maxlength="120" placeholder="Ej. Vence 30 nov">
+            <button class="btn btn-gh btn-sm" type="submit" id="promo-add"></button>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { api, requireAdmin, renderSidebar, toast, esc, AICONS } from '/assets/js/admin.js';
+    import { whatsappUrl } from '/assets/js/common.js';
+    await requireAdmin();
+    const section = () => ({ '#ofertas': 'ofertas', '#categorias': 'categorias' }[location.hash] || 'config');
+    renderSidebar(section());
+    window.addEventListener('hashchange', () => {
+      document.querySelectorAll('.snav[href^="/admin/config"]').forEach((a) => a.toggleAttribute('aria-current', a.getAttribute('href').endsWith(location.hash || '#whatsapp')));
+    });
+    document.getElementById('cat-add').innerHTML = AICONS.plus(14) + ' Añadir';
+    document.getElementById('promo-add').innerHTML = AICONS.plus(14) + ' Nueva';
+
+    let { products, categories, promotions, settings } = await api('/api/admin/catalog');
+
+    // ---- WhatsApp y contacto ----
+    const waForm = document.getElementById('whatsapp');
+    for (const k of ['whatsapp_number', 'whatsapp_message', 'instagram', 'tiktok', 'facebook', 'shipping_info']) waForm[k].value = settings[k] || '';
+    const updateTest = () => { document.getElementById('wa-test').href = whatsappUrl(waForm.whatsapp_number.value, 'Prueba desde el panel de Mabx'); };
+    waForm.whatsapp_number.addEventListener('input', updateTest);
+    updateTest();
+    waForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = Object.fromEntries(new FormData(waForm));
+      try { await api('/api/admin/settings', { method: 'PUT', body }); toast('Cambios guardados'); }
+      catch (ex) { toast(ex.message); }
+    });
+
+    // ---- Categorías ----
+    function renderCats() {
+      const counts = new Map();
+      for (const p of products) counts.set(p.category_id, (counts.get(p.category_id) || 0) + 1);
+      document.getElementById('cats').innerHTML = categories.length
+        ? categories.map((c) => `<span class="pill">${esc(c.name)} <span class="muted">${counts.get(c.id) || 0}</span>
+            <button type="button" data-ren="${c.id}" aria-label="Renombrar ${esc(c.name)}" title="Renombrar">${AICONS.edit}</button>
+            <button type="button" data-del="${c.id}" aria-label="Eliminar ${esc(c.name)}" title="Eliminar">${AICONS.x}</button></span>`).join('')
+        : '<p class="muted" style="margin:0">Aún no hay categorías.</p>';
+    }
+    document.getElementById('cats').addEventListener('click', async (e) => {
+      const ren = e.target.closest('[data-ren]');
+      const del = e.target.closest('[data-del]');
+      try {
+        if (ren) {
+          const c = categories.find((x) => x.id === Number(ren.dataset.ren));
+          const name = prompt('Nuevo nombre de la categoría', c.name);
+          if (!name || name.trim() === c.name) return;
+          Object.assign(c, await api(`/api/admin/categories/${c.id}`, { method: 'PUT', body: { name } }));
+          toast('Categoría renombrada');
+        }
+        if (del) {
+          const c = categories.find((x) => x.id === Number(del.dataset.del));
+          if (!confirm(`¿Eliminar la categoría "${c.name}"? Sus productos quedarán "Sin categoría".`)) return;
+          await api(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
+          categories = categories.filter((x) => x.id !== c.id);
+          products.forEach((p) => { if (p.category_id === c.id) p.category_id = null; });
+          toast('Categoría eliminada');
+        }
+        renderCats();
+      } catch (ex) { toast(ex.message); }
+    });
+    document.getElementById('cat-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('cat-name');
+      try {
+        categories.push(await api('/api/admin/categories', { method: 'POST', body: { name: input.value } }));
+        input.value = ''; renderCats(); toast('Categoría creada');
+      } catch (ex) { toast(ex.message); }
+    });
+
+    // ---- Promociones ----
+    function renderPromos() {
+      document.getElementById('promos').innerHTML = promotions.length
+        ? promotions.map((p) => `<div class="row">
+            <div style="min-width:0"><p style="font-weight:600;font-size:14px${p.active ? '' : ';color:var(--mut)'}">${esc(p.title)}</p>${p.detail ? `<p class="muted" style="margin-top:2px;font-size:12px">${esc(p.detail)}</p>` : ''}</div>
+            <div class="actions" style="align-items:center">
+              <button type="button" class="badge ${p.active ? 'ok' : 'off'}" data-toggle="${p.id}" style="cursor:pointer;border:0" title="Pulsa para ${p.active ? 'pausar' : 'activar'}">${p.active ? 'Activa' : 'Inactiva'}</button>
+              <button type="button" class="iact danger" data-pdel="${p.id}" aria-label="Eliminar ${esc(p.title)}">${AICONS.trash}</button>
+            </div>
+          </div>`).join('')
+        : '<p class="muted" style="margin:8px 0 0">No hay promociones todavía.</p>';
+    }
+    document.getElementById('promos').addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-toggle]');
+      const d = e.target.closest('[data-pdel]');
+      try {
+        if (t) {
+          const p = promotions.find((x) => x.id === Number(t.dataset.toggle));
+          const updated = await api(`/api/admin/promotions/${p.id}`, { method: 'PUT', body: { ...p, active: !p.active } });
+          Object.assign(p, updated, { active: !!updated.active });
+        }
+        if (d) {
+          const p = promotions.find((x) => x.id === Number(d.dataset.pdel));
+          if (!confirm(`¿Eliminar la promoción "${p.title}"?`)) return;
+          await api(`/api/admin/promotions/${p.id}`, { method: 'DELETE' });
+          promotions = promotions.filter((x) => x.id !== p.id);
+        }
+        renderPromos();
+      } catch (ex) { toast(ex.message); }
+    });
+    document.getElementById('promo-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('promo-title');
+      const detail = document.getElementById('promo-detail');
+      try {
+        const p = await api('/api/admin/promotions', { method: 'POST', body: { title: title.value, detail: detail.value } });
+        promotions.unshift({ ...p, active: !!p.active });
+        title.value = ''; detail.value = ''; renderPromos(); toast('Promoción creada');
+      } catch (ex) { toast(ex.message); }
+    });
+
+    renderCats();
+    renderPromos();
+  </script>
+</body>
+</html>

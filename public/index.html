@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mabx · Ropa deportiva en Portoviejo</title>
+  <meta name="description" content="Mabx: ropa deportiva para entrenar sin excusas. Arma tu pedido y confírmalo por WhatsApp. Envíos a todo el Ecuador.">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+  <div data-header></div>
+  <main>
+    <section class="hero">
+      <div class="glow"></div>
+      <div class="wrap">
+        <div class="hero-copy">
+          <p class="eyebrow">Ropa deportiva · Portoviejo</p>
+          <h1>Nacidos <br>para <br><em>superarnos</em></h1>
+          <p class="lead">Prendas para entrenar sin excusas. Hechas para quien no se conforma, sin importar género ni nivel.</p>
+          <div class="hero-actions">
+            <a href="/catalogo" class="btn btn-ac">Ver catálogo</a>
+            <a href="/catalogo?ofertas=1" class="btn btn-gh">Ver ofertas</a>
+          </div>
+        </div>
+        <div class="hero-media">
+          <div class="frame">
+            <picture>
+              <source type="image/webp" srcset="/img/banner-mabx-960.webp 960w, /img/banner-mabx.webp 1672w" sizes="(max-width: 860px) 100vw, 640px">
+              <img src="/img/banner-mabx.jpg" width="1672" height="941" alt="Pareja entrenando en el gimnasio con camisetas Mabx" fetchpriority="high">
+            </picture>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="strip" aria-label="Beneficios">
+      <div class="wrap">
+        <span>✦ Pedido fácil por WhatsApp</span>
+        <span>✦ Envíos a todo el Ecuador</span>
+        <span>✦ Calidad para entrenar</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Lo más pedido</p>
+            <h2>Destacados</h2>
+          </div>
+          <a href="/catalogo" class="link-ac">Ver todo →</a>
+        </div>
+        <div class="grid" id="featured">
+          <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="wrap">
+        <div class="promo">
+          <div class="glow"></div>
+          <div class="inner">
+            <h2>Entrena con <span class="accent">actitud</span></h2>
+            <ul class="promo-list" id="promos" hidden></ul>
+            <p>Arma tu pedido en segundos y confírmalo por WhatsApp. Sin cuentas, sin complicaciones.</p>
+            <a href="/catalogo" class="btn btn-ac">Comprar ahora</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div data-footer></div>
+
+  <script type="module">
+    import { renderChrome, getCatalog, productCard, esc, errorBox } from '/assets/js/common.js';
+    renderChrome('inicio');
+    const grid = document.getElementById('featured');
+    try {
+      const { products, promotions } = await getCatalog();
+      const available = products.filter((p) => p.available);
+      let featured = available.filter((p) => p.featured);
+      if (featured.length < 4) featured = featured.concat(available.filter((p) => !p.featured)).slice(0, 4);
+      grid.innerHTML = featured.slice(0, 8).map((p) => productCard(p)).join('') || '<div class="empty" style="grid-column:1/-1">Pronto tendremos nuevos productos.</div>';
+      if (promotions.length) {
+        const list = document.getElementById('promos');
+        list.innerHTML = promotions.map((p) => `<li>${esc(p.title)}${p.detail ? `<small>${esc(p.detail)}</small>` : ''}</li>`).join('');
+        list.hidden = false;
+      }
+    } catch { errorBox(grid); }
+  </script>
+</body>
+</html>

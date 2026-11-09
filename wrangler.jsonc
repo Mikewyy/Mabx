@@ -1,0 +1,34 @@
+// Configuración de Cloudflare para el sitio de Mabx.
+// - "assets": las páginas (HTML/CSS/JS/imágenes) de la carpeta public/
+// - "d1_databases": la base de datos (productos, categorías, ajustes)
+// - "r2_buckets": donde se guardan las fotos que subes desde el panel
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mabx",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mabx-db",
+      // Pega aquí el "database_id" que te da: npx wrangler d1 create mabx-db
+      "database_id": "c9a58bec-2ee8-4318-a797-493db8d2b052",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "mabx-imagenes"
+    }
+  ],
+  "vars": {
+    // Correo con el que el dueño entra al panel /admin
+    "ADMIN_EMAIL": "mikezgrain@gmail.com"
+  },
+  "observability": { "enabled": true }
+}

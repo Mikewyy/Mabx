@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <title>Producto · Panel Mabx</title>
+</head>
+<body>
+  <div class="admin">
+    <div data-sidebar></div>
+    <main class="admin-main">
+      <div class="admin-crumbs"><a href="/admin/productos">Productos</a> / <span id="crumb">Nuevo producto</span></div>
+      <h1 id="title" style="font-size:38px;font-weight:800;margin:0 0 28px">Crear producto</h1>
+
+      <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
+        <form id="form" novalidate style="flex:999 1 460px;min-width:0;display:flex;flex-direction:column;gap:22px">
+          <div class="alert err" id="err" role="alert" hidden style="margin:0"></div>
+
+          <div class="panel">
+            <div class="field"><label class="f" for="name">Nombre del producto</label><input id="name" name="name" type="text" maxlength="120" required placeholder="Ej. Camiseta Hombre · Negra"></div>
+            <div class="field" style="margin-bottom:0"><label class="f" for="description">Descripción</label><textarea id="description" name="description" rows="3" maxlength="2000" placeholder="Tela, corte, para qué deporte es ideal…"></textarea></div>
+          </div>
+
+          <div class="panel dropzone" id="dropzone">
+            <span class="flbl" id="photos-lbl">Fotos del producto</span>
+            <div class="photos" id="photos" aria-labelledby="photos-lbl"></div>
+            <input type="file" id="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+            <p class="help" id="photo-help" style="margin:0">Arrastra imágenes aquí o pulsa “+”. La primera foto es la portada. JPG, PNG o WEBP, máx. 5 MB.</p>
+          </div>
+
+          <div class="panel">
+            <div class="field">
+              <span class="flbl" id="sizes-lbl">Tallas disponibles</span>
+              <div class="chips" id="sizes" role="group" aria-labelledby="sizes-lbl"></div>
+              <div class="inline-form" style="margin-top:12px">
+                <label class="sr-only" for="custom-size">Otra talla</label>
+                <input id="custom-size" type="text" maxlength="10" placeholder="Otra talla (ej. 38, Única)" style="max-width:220px">
+                <button type="button" class="btn btn-gh btn-sm" id="add-size">Añadir talla</button>
+              </div>
+            </div>
+            <div class="two">
+              <div><label class="f" for="category_id">Categoría</label><select id="category_id" name="category_id"><option value="">Sin categoría</option></select></div>
+              <div><label class="f" for="gender">Género</label><select id="gender" name="gender"><option value="hombre">Hombre</option><option value="mujer">Mujer</option><option value="unisex">Unisex</option></select></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="two">
+              <div><label class="f" for="price">Precio ($)</label><input id="price" name="price" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="25.90"></div>
+              <div><label class="f" for="sale_price">Precio de oferta ($)</label><input id="sale_price" name="sale_price" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Opcional"></div>
+            </div>
+            <p class="help">Deja vacío el precio de oferta si no hay descuento. Si lo llenas, se mostrará la etiqueta “-X%”.</p>
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--bd)">
+              <div class="toggle-row">
+                <div><p style="font-weight:600;font-size:14px">Disponible</p><p class="muted" style="font-size:12px">Desactívalo para marcar como agotado</p></div>
+                <label class="switch"><input type="checkbox" name="available" checked aria-label="Disponible"><span class="track"><span class="knob"></span></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><p style="font-weight:600;font-size:14px">Destacado</p><p class="muted" style="font-size:12px">Aparece en “Destacados” de la página de inicio</p></div>
+                <label class="switch"><input type="checkbox" name="featured" aria-label="Destacado"><span class="track"><span class="knob"></span></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><p style="font-weight:600;font-size:14px">Nuevo</p><p class="muted" style="font-size:12px">Muestra la etiqueta “Nuevo”</p></div>
+                <label class="switch"><input type="checkbox" name="is_new" aria-label="Nuevo"><span class="track"><span class="knob"></span></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px;flex-wrap:wrap">
+            <button type="submit" class="btn btn-ac btn-lg" id="save">Guardar producto</button>
+            <a href="/admin/productos" class="btn btn-gh btn-lg">Cancelar</a>
+          </div>
+        </form>
+
+        <aside style="flex:1 1 300px;min-width:260px;max-width:340px;position:sticky;top:24px">
+          <p class="secttl" style="margin-bottom:14px">Vista previa</p>
+          <div id="preview"></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { api, requireAdmin, renderSidebar, toast, esc, AICONS } from '/assets/js/admin.js';
+    import { productCard } from '/assets/js/common.js';
+    await requireAdmin();
+    renderSidebar('productos');
+
+    const DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    const id = Number(new URLSearchParams(location.search).get('id')) || null;
+    const form = document.getElementById('form');
+    const err = document.getElementById('err');
+    const photosEl = document.getElementById('photos');
+    const fileInput = document.getElementById('file');
+    let images = [];
+    let sizes = new Set(['S', 'M', 'L']);
+    let sizeOptions = [...DEFAULT_SIZES];
+    let uploading = 0;
+
+    const data = await api('/api/admin/catalog');
+    form.category_id.insertAdjacentHTML('beforeend', data.categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join(''));
+
+    if (id) {
+      const p = data.products.find((x) => x.id === id);
+      if (!p) { location.replace('/admin/productos'); throw new Error('no existe'); }
+      document.title = `Editar ${p.name} · Panel Mabx`;
+      document.getElementById('title').textContent = 'Editar producto';
+      document.getElementById('crumb').textContent = p.name;
+      form.name.value = p.name;
+      form.description.value = p.description;
+      form.category_id.value = p.category_id ?? '';
+      form.gender.value = p.gender;
+      form.price.value = p.price.toFixed(2);
+      form.sale_price.value = p.sale_price != null ? p.sale_price.toFixed(2) : '';
+      form.available.checked = p.available;
+      form.featured.checked = p.featured;
+      form.is_new.checked = p.is_new;
+      images = [...p.images];
+      sizes = new Set(p.sizes);
+      for (const s of p.sizes) if (!sizeOptions.includes(s)) sizeOptions.push(s);
+    } else if (data.categories[0]) {
+      form.category_id.value = data.categories[0].id;
+    }
+
+    function renderSizes() {
+      document.getElementById('sizes').innerHTML = sizeOptions
+        .map((s) => `<button type="button" class="chip" data-size="${esc(s)}" aria-pressed="${sizes.has(s)}">${esc(s)}</button>`).join('');
+    }
+    function renderPhotos() {
+      photosEl.innerHTML = images.map((src, i) => `
+        <div class="photo">
+          <img src="${esc(src)}" alt="Foto ${i + 1}">
+          ${i === 0 ? '<span class="first">Portada</span>' : ''}
+          <button type="button" class="rm" data-rm="${i}" aria-label="Quitar foto ${i + 1}">${AICONS.x}</button>
+        </div>`).join('') +
+        (images.length < 10 ? `<button type="button" class="photo-add" id="add-photo" aria-label="Subir fotos">${uploading ? '…' : '+'}</button>` : '');
+    }
+    function values() {
+      return {
+        name: form.name.value,
+        description: form.description.value,
+        category_id: form.category_id.value || null,
+        gender: form.gender.value,
+        price: form.price.value,
+        sale_price: form.sale_price.value,
+        sizes: sizeOptions.filter((s) => sizes.has(s)),
+        images,
+        available: form.available.checked,
+        featured: form.featured.checked,
+        is_new: form.is_new.checked,
+      };
+    }
+    function renderPreview() {
+      const v = values();
+      const price = Number(v.price) || 0;
+      const sale = v.sale_price !== '' && Number(v.sale_price) > 0 && Number(v.sale_price) < price ? Number(v.sale_price) : null;
+      document.getElementById('preview').innerHTML = productCard({
+        id: id || 0, name: v.name || 'Nombre del producto', images: v.images, price, sale_price: sale,
+        available: v.available, is_new: v.is_new, sizes: v.sizes,
+      }, { cta: false });
+    }
+    const refresh = () => { renderSizes(); renderPhotos(); renderPreview(); };
+
+    async function upload(files) {
+      const list = [...files].slice(0, 10 - images.length);
+      for (const file of list) {
+        if (file.size > 5 * 1024 * 1024) { toast(`${file.name} pesa más de 5 MB`); continue; }
+        uploading++; renderPhotos();
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+          const { url } = await api('/api/admin/upload', { method: 'POST', form: fd });
+          images.push(url);
+        } catch (ex) { toast(ex.message); }
+        uploading--; refresh();
+      }
+    }
+
+    document.getElementById('sizes').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-size]');
+      if (!b) return;
+      sizes.has(b.dataset.size) ? sizes.delete(b.dataset.size) : sizes.add(b.dataset.size);
+      refresh();
+    });
+    document.getElementById('add-size').addEventListener('click', () => {
+      const input = document.getElementById('custom-size');
+      const s = input.value.trim().toUpperCase();
+      if (!s) return;
+      if (!sizeOptions.includes(s)) sizeOptions.push(s);
+      sizes.add(s); input.value = ''; refresh();
+    });
+    photosEl.addEventListener('click', (e) => {
+      if (e.target.closest('#add-photo')) fileInput.click();
+      const rm = e.target.closest('[data-rm]');
+      if (rm) { images.splice(Number(rm.dataset.rm), 1); refresh(); }
+    });
+    fileInput.addEventListener('change', () => { upload(fileInput.files); fileInput.value = ''; });
+    const dz = document.getElementById('dropzone');
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('drag'); upload(e.dataTransfer.files); });
+    form.addEventListener('input', renderPreview);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.hidden = true;
+      if (uploading) { toast('Espera a que terminen de subir las fotos'); return; }
+      const btn = document.getElementById('save');
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        await api(id ? `/api/admin/products/${id}` : '/api/admin/products', { method: id ? 'PUT' : 'POST', body: values() });
+        location.href = '/admin/productos';
+      } catch (ex) {
+        err.textContent = ex.message; err.hidden = false;
+        err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        btn.disabled = false; btn.textContent = 'Guardar producto';
+      }
+    });
+    refresh();
+  </script>
+</body>
+</html>

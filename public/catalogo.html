@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo · Mabx</title>
+  <meta name="description" content="Catálogo de ropa deportiva Mabx: camisetas, shorts, tops y más. Pide por WhatsApp.">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+  <div data-header></div>
+  <main class="wrap">
+    <div class="page-head">
+      <p class="eyebrow">Tienda</p>
+      <h1 id="title">Catálogo</h1>
+    </div>
+
+    <div class="catalog">
+      <details class="filters" id="filters" open>
+        <summary>
+          <h2>Filtros</h2>
+          <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <form class="fbody" id="filter-form">
+          <fieldset class="fgroup">
+            <legend class="ftitle">Mostrar</legend>
+            <label class="flabel"><input type="checkbox" name="ofertas"> Solo ofertas</label>
+            <label class="flabel"><input type="checkbox" name="disponibles"> Solo disponibles</label>
+          </fieldset>
+          <fieldset class="fgroup">
+            <legend class="ftitle">Categoría</legend>
+            <div id="f-cats"></div>
+          </fieldset>
+          <fieldset class="fgroup">
+            <legend class="ftitle">Género</legend>
+            <label class="flabel"><input type="checkbox" name="genero" value="hombre"> Hombre</label>
+            <label class="flabel"><input type="checkbox" name="genero" value="mujer"> Mujer</label>
+            <label class="flabel"><input type="checkbox" name="genero" value="unisex"> Unisex</label>
+          </fieldset>
+          <fieldset class="fgroup">
+            <legend class="ftitle">Talla</legend>
+            <div class="chips" id="f-sizes"></div>
+          </fieldset>
+          <fieldset class="fgroup">
+            <legend class="ftitle"><label for="f-price">Precio máximo</label></legend>
+            <input type="range" class="range" id="f-price" name="precio" min="0" max="100" step="1" value="100">
+            <div class="range-vals"><span id="p-min">$0</span><strong id="p-cur">$100</strong></div>
+          </fieldset>
+          <button type="reset" class="btn btn-gh btn-sm btn-block" style="margin-top:22px">Limpiar filtros</button>
+        </form>
+      </details>
+
+      <section class="results" aria-labelledby="title">
+        <div class="results-bar">
+          <span id="count" aria-live="polite">Cargando…</span>
+          <label>Ordenar:
+            <select class="select" id="sort">
+              <option value="recientes">Más recientes</option>
+              <option value="precio-asc">Precio: menor a mayor</option>
+              <option value="precio-desc">Precio: mayor a menor</option>
+              <option value="descuento">Mayor descuento</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid grid-3" id="grid">
+          <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div data-footer></div>
+
+  <script type="module">
+    import { renderChrome, getCatalog, productCard, esc, money, finalPrice, discountPct, errorBox } from '/assets/js/common.js';
+    const params = new URLSearchParams(location.search);
+    renderChrome(params.get('ofertas') ? 'ofertas' : 'catalogo');
+
+    const form = document.getElementById('filter-form');
+    const grid = document.getElementById('grid');
+    const count = document.getElementById('count');
+    const sortSel = document.getElementById('sort');
+    const priceInput = document.getElementById('f-price');
+    const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    const selectedSizes = new Set();
+
+    // En celular los filtros empiezan cerrados
+    const mq = matchMedia('(max-width: 860px)');
+    document.getElementById('filters').open = !mq.matches;
+    mq.addEventListener('change', (e) => { document.getElementById('filters').open = !e.matches; });
+
+    let data;
+    try { data = await getCatalog(); } catch { errorBox(grid); count.textContent = ''; throw new Error('catalog'); }
+    const { products, categories } = data;
+
+    // Construir filtros con los datos reales
+    document.getElementById('f-cats').innerHTML = categories
+      .map((c) => `<label class="flabel"><input type="checkbox" name="cat" value="${c.id}" data-slug="${esc(c.slug)}"> ${esc(c.name)}</label>`).join('');
+    const sizes = [...new Set(products.flatMap((p) => p.sizes))]
+      .sort((a, b) => (SIZE_ORDER.indexOf(a) + 1 || 99) - (SIZE_ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
+    document.getElementById('f-sizes').innerHTML = sizes.map((s) => `<button type="button" class="chip" aria-pressed="false" data-size="${esc(s)}">${esc(s)}</button>`).join('');
+    const maxPrice = Math.max(10, Math.ceil(Math.max(0, ...products.map(finalPrice))));
+    priceInput.max = maxPrice; priceInput.value = maxPrice;
+
+    // Filtros que vienen en la dirección (ej. /catalogo?ofertas=1 o ?cat=camisetas)
+    if (params.get('ofertas')) form.ofertas.checked = true;
+    if (params.get('cat')) form.querySelectorAll('[name=cat]').forEach((i) => { if (i.dataset.slug === params.get('cat')) i.checked = true; });
+    if (params.get('ofertas')) document.getElementById('title').textContent = 'Ofertas';
+
+    function apply() {
+      const cats = [...form.querySelectorAll('[name=cat]:checked')].map((i) => Number(i.value));
+      const genders = [...form.querySelectorAll('[name=genero]:checked')].map((i) => i.value);
+      const max = Number(priceInput.value);
+      document.getElementById('p-cur').textContent = money(max).replace('.00', '');
+
+      let list = products.filter((p) =>
+        (!form.ofertas.checked || p.sale_price != null) &&
+        (!form.disponibles.checked || p.available) &&
+        (!cats.length || cats.includes(p.category_id)) &&
+        (!genders.length || genders.includes(p.gender) || p.gender === 'unisex') &&
+        (!selectedSizes.size || p.sizes.some((s) => selectedSizes.has(s))) &&
+        finalPrice(p) <= max
+      );
+      const sort = sortSel.value;
+      list = list.slice().sort((a, b) => {
+        if (a.available !== b.available) return a.available ? -1 : 1;
+        if (sort === 'precio-asc') return finalPrice(a) - finalPrice(b);
+        if (sort === 'precio-desc') return finalPrice(b) - finalPrice(a);
+        if (sort === 'descuento') return discountPct(b) - discountPct(a);
+        return 0;
+      });
+      count.textContent = `${list.length} producto${list.length === 1 ? '' : 's'}`;
+      grid.innerHTML = list.length
+        ? list.map((p) => productCard(p, { cta: false })).join('')
+        : '<div class="empty" style="grid-column:1/-1">No encontramos prendas con esos filtros. Prueba quitando alguno.</div>';
+    }
+
+    form.addEventListener('input', apply);
+    sortSel.addEventListener('change', apply);
+    document.getElementById('f-sizes').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-size]');
+      if (!b) return;
+      const on = b.getAttribute('aria-pressed') !== 'true';
+      b.setAttribute('aria-pressed', String(on));
+      on ? selectedSizes.add(b.dataset.size) : selectedSizes.delete(b.dataset.size);
+      apply();
+    });
+    form.addEventListener('reset', () => {
+      selectedSizes.clear();
+      form.querySelectorAll('[data-size]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      setTimeout(() => { priceInput.value = maxPrice; apply(); });
+    });
+    apply();
+  </script>
+</body>
+</html>

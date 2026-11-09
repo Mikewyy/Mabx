@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tu carrito · Mabx</title>
+  <meta name="theme-color" content="#0A0A0A">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+  <div data-header></div>
+  <main class="wrap" id="root"><div class="skeleton" style="margin-top:40px;min-height:400px"></div></main>
+  <div data-footer></div>
+
+  <script type="module">
+    import { renderChrome, getCatalog, cart, esc, money, finalPrice, productImg, buildOrderMessage, whatsappUrl, ICONS, errorBox } from '/assets/js/common.js';
+    renderChrome('carrito');
+    const root = document.getElementById('root');
+
+    let data;
+    try { data = await getCatalog(); } catch { errorBox(root); throw new Error('catalog'); }
+    const byId = new Map(data.products.map((p) => [p.id, p]));
+
+    // Quita del carrito productos que el dueño borró del catálogo
+    const valid = cart.read().filter((i) => byId.has(i.id));
+    if (valid.length !== cart.read().length) cart.write(valid);
+
+    function render() {
+      const items = cart.read().map((i) => ({ ...i, product: byId.get(i.id) })).filter((i) => i.product);
+      if (!items.length) {
+        root.innerHTML = `
+          <div class="cart-empty">
+            <div class="box">
+              <div class="icon">${ICONS.cart(42)}</div>
+              <h1>Tu carrito está vacío</h1>
+              <p>Todavía no agregaste prendas. Explora el catálogo y arma tu pedido para entrenar sin excusas.</p>
+              <a href="/catalogo" class="btn btn-ac btn-lg">Ir al catálogo</a>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const orderable = items.filter((i) => i.product.available);
+      const units = orderable.reduce((n, i) => n + i.qty, 0);
+      const subtotal = orderable.reduce((s, i) => s + i.product.price * i.qty, 0);
+      const total = orderable.reduce((s, i) => s + finalPrice(i.product) * i.qty, 0);
+      const discount = subtotal - total;
+      const message = buildOrderMessage(orderable, total, data.settings.whatsapp_message);
+
+      root.innerHTML = `
+        <h1 style="font-size:46px;font-weight:800;margin:40px 0 28px">Tu carrito</h1>
+        <div class="cart">
+          <div class="cart-items">
+            ${items.map((i) => {
+              const p = i.product;
+              const pct = p.sale_price != null ? Math.round((1 - p.sale_price / p.price) * 100) : 0;
+              return `
+              <div class="citem"${p.available ? '' : ' style="opacity:.55"'}>
+                <a class="cthumb" href="/producto?id=${p.id}" tabindex="-1" aria-hidden="true"><img src="${esc(productImg(p))}" alt=""></a>
+                <div style="flex:1;min-width:0">
+                  <h3><a href="/producto?id=${p.id}">${esc(p.name)}</a></h3>
+                  <p class="meta">Talla ${esc(i.size)}${pct ? ` · <span class="accent">-${pct}%</span>` : ''}${p.available ? '' : ' · <strong>Agotado</strong>'}</p>
+                  <div class="qty sm">
+                    <button type="button" data-act="dec" data-id="${p.id}" data-size="${esc(i.size)}" aria-label="Quitar una unidad">−</button>
+                    <output>${i.qty}</output>
+                    <button type="button" data-act="inc" data-id="${p.id}" data-size="${esc(i.size)}" aria-label="Agregar una unidad">+</button>
+                  </div>
+                </div>
+                <div class="right">
+                  <span class="price">${money(finalPrice(p) * i.qty)}</span>
+                  <div><button type="button" class="link-btn" data-act="del" data-id="${p.id}" data-size="${esc(i.size)}">Quitar</button></div>
+                </div>
+              </div>`;
+            }).join('')}
+            <a href="/catalogo" class="link-ac" style="margin-top:6px;text-transform:none;letter-spacing:0">← Seguir comprando</a>
+          </div>
+
+          <aside class="summary" aria-label="Resumen del pedido">
+            <h2>Resumen</h2>
+            <div class="sumrow"><span>Subtotal (${units})</span><span>${money(subtotal)}</span></div>
+            ${discount > 0.001 ? `<div class="sumrow"><span>Descuentos</span><span class="ac">−${money(discount)}</span></div>` : ''}
+            <div class="sumrow"><span>Envío</span><span>A coordinar</span></div>
+            <div class="sumtotal"><span>Total estimado</span><span class="price">${money(total)}</span></div>
+            <a class="btn btn-wa btn-lg btn-block" id="wa" href="${esc(whatsappUrl(data.settings.whatsapp_number, message))}" target="_blank" rel="noopener"${orderable.length ? '' : ' aria-disabled="true" style="pointer-events:none;opacity:.45"'}>
+              ${ICONS.whatsapp(22)} Pedir por WhatsApp
+            </a>
+            <p class="muted" style="font-size:12px;text-align:center;margin:14px 0 0">Te llevaremos a un chat con tu pedido ya escrito.</p>
+            <div class="msg-preview">
+              <p class="lbl">Mensaje que se enviará</p>
+              <p class="txt">${esc(message)}</p>
+            </div>
+          </aside>
+        </div>`;
+    }
+
+    root.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      const id = Number(b.dataset.id);
+      const size = b.dataset.size;
+      const item = cart.read().find((i) => i.id === id && i.size === size);
+      if (!item) return;
+      if (b.dataset.act === 'inc') cart.setQty(id, size, Math.min(99, item.qty + 1));
+      if (b.dataset.act === 'dec') cart.setQty(id, size, item.qty - 1);
+      if (b.dataset.act === 'del') cart.remove(id, size);
+      render();
+    });
+    window.addEventListener('storage', render);
+    render();
+  </script>
+</body>
+</html>

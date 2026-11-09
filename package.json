@@ -1,0 +1,15 @@
+{
+  "name": "mabx",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Catálogo web de Mabx con pedidos por WhatsApp (Cloudflare Workers + D1 + R2)",
+  "scripts": {
+    "db:local": "wrangler d1 migrations apply mabx-db --local",
+    "db:remote": "wrangler d1 migrations apply mabx-db --remote",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.158.0"
+  }
+}

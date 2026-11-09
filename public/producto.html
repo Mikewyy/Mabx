@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Producto · Mabx</title>
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+  <div data-header></div>
+  <main class="wrap" style="padding-bottom:64px">
+    <nav class="crumbs" aria-label="Ruta"><a href="/catalogo">Catálogo</a> / <span id="crumb">…</span></nav>
+    <div id="pdp"><div class="skeleton" style="min-height:520px"></div></div>
+    <section id="related-wrap" style="margin-top:64px" hidden>
+      <h2 style="font-size:30px;font-weight:700;margin-bottom:22px">También te puede gustar</h2>
+      <div class="grid" id="related"></div>
+    </section>
+  </main>
+  <div data-footer></div>
+
+  <script type="module">
+    import { renderChrome, getCatalog, productCard, esc, money, finalPrice, productImg, cart, toast, ICONS, errorBox } from '/assets/js/common.js';
+    renderChrome('catalogo');
+    const box = document.getElementById('pdp');
+    const id = Number(new URLSearchParams(location.search).get('id'));
+
+    let data;
+    try { data = await getCatalog(); } catch { errorBox(box); throw new Error('catalog'); }
+    const p = data.products.find((x) => x.id === id);
+    if (!p) {
+      document.getElementById('crumb').textContent = 'No encontrado';
+      box.innerHTML = '<div class="empty">Este producto ya no está disponible. <a class="link-ac" href="/catalogo">Ver catálogo</a></div>';
+    } else {
+      render(p);
+    }
+
+    function render(p) {
+      document.title = `${p.name} · Mabx`;
+      document.getElementById('crumb').textContent = p.name;
+      const save = p.sale_price != null ? p.price - p.sale_price : 0;
+      const imgs = p.images.length ? p.images : [productImg(p)];
+      let size = p.sizes.length === 1 ? p.sizes[0] : null;
+      let qty = 1;
+
+      box.innerHTML = `
+        <div class="pdp">
+          <div class="gallery">
+            ${imgs.length > 1 ? `<div class="thumbs" role="group" aria-label="Fotos">${imgs.map((src, i) => `<button type="button" class="thumb${i ? '' : ' on'}" data-i="${i}" aria-label="Ver foto ${i + 1}"><img src="${esc(src)}" alt=""></button>`).join('')}</div>` : ''}
+            <div class="main-img"><img id="main-img" src="${esc(imgs[0])}" alt="${esc(p.name)}"></div>
+          </div>
+          <div class="pdp-info">
+            ${!p.available ? '<span class="tag alt">Agotado</span>' : p.sale_price != null ? '<span class="tag">En oferta</span>' : p.is_new ? '<span class="tag alt">Nuevo</span>' : ''}
+            <h1>${esc(p.name)}</h1>
+            <div class="pdp-price">
+              <span class="price">${money(finalPrice(p))}</span>
+              ${save ? `<span class="old">${money(p.price)}</span><span class="save">Ahorra ${money(save)}</span>` : ''}
+            </div>
+            ${p.description ? `<p class="pdp-desc">${esc(p.description)}</p>` : ''}
+
+            ${p.sizes.length ? `
+            <div style="margin-bottom:24px">
+              <div class="pdp-label"><span id="size-lbl">Talla</span></div>
+              <div class="chips" role="group" aria-labelledby="size-lbl" id="sizes">
+                ${p.sizes.map((s) => `<button type="button" class="chip" aria-pressed="${s === size}" data-size="${esc(s)}"${p.available ? '' : ' disabled'}>${esc(s)}</button>`).join('')}
+              </div>
+            </div>` : ''}
+
+            <div style="margin-bottom:28px">
+              <p class="pdp-label" style="margin-bottom:12px">Cantidad</p>
+              <div class="qty">
+                <button type="button" data-q="-1" aria-label="Disminuir">−</button>
+                <output id="qty" aria-live="polite">1</output>
+                <button type="button" data-q="1" aria-label="Aumentar">+</button>
+              </div>
+            </div>
+
+            <div class="add-row">
+              <button type="button" class="btn btn-ac btn-lg" id="add" style="min-width:260px"${p.available ? '' : ' disabled'}>
+                ${ICONS.cart()} ${p.available ? 'Agregar al carrito' : 'Agotado'}
+              </button>
+              <p class="form-hint" id="hint" hidden>Elige una talla para continuar.</p>
+            </div>
+
+            <div class="perks">
+              <span>✓ ${esc(data.settings.shipping_info || 'Envíos a todo el Ecuador')}</span>
+              <span>✓ Pago y coordinación por WhatsApp</span>
+            </div>
+          </div>
+        </div>`;
+
+      box.addEventListener('click', (e) => {
+        const t = e.target.closest('button');
+        if (!t) return;
+        if (t.dataset.i) {
+          box.querySelectorAll('.thumb').forEach((b) => b.classList.toggle('on', b === t));
+          document.getElementById('main-img').src = imgs[Number(t.dataset.i)];
+        } else if (t.dataset.size) {
+          size = t.dataset.size;
+          box.querySelectorAll('[data-size]').forEach((b) => b.setAttribute('aria-pressed', String(b === t)));
+          document.getElementById('hint').hidden = true;
+        } else if (t.dataset.q) {
+          qty = Math.min(99, Math.max(1, qty + Number(t.dataset.q)));
+          document.getElementById('qty').textContent = qty;
+        } else if (t.id === 'add') {
+          if (p.sizes.length && !size) { document.getElementById('hint').hidden = false; return; }
+          cart.add(p.id, size || 'Única', qty);
+          toast(`Agregado al carrito <a href="/carrito">Ver carrito →</a>`);
+        }
+      });
+
+      const related = data.products
+        .filter((x) => x.id !== p.id && x.available)
+        .sort((a, b) => (b.category_id === p.category_id) - (a.category_id === p.category_id))
+        .slice(0, 4);
+      if (related.length) {
+        document.getElementById('related').innerHTML = related.map((x) => productCard(x, { cta: false })).join('');
+        document.getElementById('related-wrap').hidden = false;
+      }
+    }
+  </script>
+</body>
+</html>

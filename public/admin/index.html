@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <title>Iniciar sesión · Panel Mabx</title>
+</head>
+<body>
+  <main class="login">
+    <div class="glow"></div>
+    <div style="position:relative;width:100%;max-width:420px">
+      <div style="text-align:center;margin-bottom:32px">
+        <div class="logo" style="display:inline-flex;gap:10px" id="logo"></div>
+        <p class="muted" style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin:14px 0 0">Panel de administración</p>
+      </div>
+      <div class="panel" style="border-radius:18px;padding:32px">
+        <h1 style="font-size:28px;font-weight:700;margin:0 0 24px">Iniciar sesión</h1>
+        <div class="alert err" id="err" role="alert" hidden></div>
+        <form id="form" novalidate>
+          <div class="field" style="margin-bottom:18px">
+            <label class="f" for="email">Correo</label>
+            <input id="email" name="email" type="email" autocomplete="username" placeholder="tucorreo@mabx.com" required>
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <label class="f" for="pass">Contraseña</label>
+            <input id="pass" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+          </div>
+          <label class="flabel" style="margin-bottom:20px"><input type="checkbox" name="remember"> Recordarme por 7 días</label>
+          <button class="btn btn-ac btn-lg btn-block" id="submit">Ingresar</button>
+        </form>
+      </div>
+      <p style="text-align:center;color:var(--dim);font-size:12px;margin-top:22px">Acceso solo para el administrador de Mabx · <a href="/" style="color:var(--mut)">Volver a la tienda</a></p>
+    </div>
+  </main>
+  <script type="module">
+    import { ICONS } from '/assets/js/common.js';
+    document.getElementById('logo').innerHTML = ICONS.logo(30) + '<span style="font-size:34px">MABX</span>';
+    const me = await fetch('/api/me').then((r) => r.json()).catch(() => ({}));
+    if (me.admin) location.replace('/admin/productos');
+
+    const form = document.getElementById('form');
+    const err = document.getElementById('err');
+    const btn = document.getElementById('submit');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.hidden = true;
+      btn.disabled = true; btn.textContent = 'Ingresando…';
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email: form.email.value, password: form.password.value, remember: form.remember.checked }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'No se pudo iniciar sesión');
+        location.href = '/admin/productos';
+      } catch (ex) {
+        err.textContent = ex.message; err.hidden = false;
+        btn.disabled = false; btn.textContent = 'Ingresar';
+      }
+    });
+  </script>
+</body>
+</html>

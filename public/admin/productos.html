@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <title>Productos · Panel Mabx</title>
+</head>
+<body>
+  <div class="admin">
+    <div data-sidebar></div>
+    <main class="admin-main">
+      <div class="admin-head">
+        <div>
+          <p class="kicker">Panel · Mabx</p>
+          <h1>Productos</h1>
+        </div>
+        <a href="/admin/editar" class="btn btn-ac" id="new-btn"></a>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><p class="lbl">Productos activos</p><p class="val" id="st-active">–</p></div>
+        <div class="stat"><p class="lbl">En oferta</p><p class="val accent" id="st-sale">–</p></div>
+        <div class="stat"><p class="lbl">Agotados</p><p class="val" id="st-out">–</p></div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-tools">
+          <label class="sr-only" for="q">Buscar producto</label>
+          <input id="q" type="text" placeholder="Buscar por nombre…" autocomplete="off">
+        </div>
+        <table>
+          <thead><tr>
+            <th style="width:40%">Producto</th>
+            <th>Categoría</th>
+            <th>Precio</th>
+            <th>Estado</th>
+            <th style="text-align:right">Acciones</th>
+          </tr></thead>
+          <tbody id="rows"><tr><td colspan="5" class="muted">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { api, requireAdmin, renderSidebar, toast, esc, AICONS } from '/assets/js/admin.js';
+    import { money, finalPrice, productImg } from '/assets/js/common.js';
+    await requireAdmin();
+    renderSidebar('productos');
+    document.getElementById('new-btn').innerHTML = AICONS.plus() + ' Nuevo producto';
+
+    let products = [], catNames = new Map();
+    const rows = document.getElementById('rows');
+    const q = document.getElementById('q');
+
+    async function load() {
+      const data = await api('/api/admin/catalog');
+      products = data.products;
+      catNames = new Map(data.categories.map((c) => [c.id, c.name]));
+      render();
+    }
+
+    function sizeRange(sizes) {
+      if (!sizes.length) return 'Talla única';
+      return sizes.length > 2 ? `Tallas ${sizes[0]}–${sizes[sizes.length - 1]}` : `Tallas ${sizes.join(', ')}`;
+    }
+
+    function render() {
+      document.getElementById('st-active').textContent = products.filter((p) => p.available).length;
+      document.getElementById('st-sale').textContent = products.filter((p) => p.available && p.sale_price != null).length;
+      document.getElementById('st-out').textContent = products.filter((p) => !p.available).length;
+
+      const term = q.value.trim().toLowerCase();
+      const list = products.filter((p) => !term || p.name.toLowerCase().includes(term));
+      if (!list.length) {
+        rows.innerHTML = `<tr><td colspan="5" class="muted">${products.length ? 'Ningún producto coincide con la búsqueda.' : 'Aún no hay productos. Crea el primero con “Nuevo producto”.'}</td></tr>`;
+        return;
+      }
+      rows.innerHTML = list.map((p) => {
+        const off = !p.available;
+        const status = off ? '<span class="badge off">Agotado</span>' : p.sale_price != null ? '<span class="badge ok">En oferta</span>' : '<span class="badge ok">Disponible</span>';
+        return `<tr>
+          <td><div style="display:flex;align-items:center;gap:14px">
+            <div class="tdimg"${off ? ' style="opacity:.5"' : ''}><img src="${esc(productImg(p))}" alt=""></div>
+            <div><p style="font-weight:600;margin:0 0 2px${off ? ';color:var(--mut)' : ''}">${esc(p.name)}${p.featured ? ' <span class="accent" title="Destacado en el inicio">★</span>' : ''}</p>
+            <p class="muted" style="font-size:12px;margin:0">${esc(sizeRange(p.sizes))}</p></div>
+          </div></td>
+          <td class="muted" style="font-size:14px">${esc(catNames.get(p.category_id) || '—')}</td>
+          <td><span style="font-weight:700${off ? ';color:var(--mut)' : ''}">${money(finalPrice(p))}</span>${p.sale_price != null ? ` <span class="muted" style="text-decoration:line-through;font-size:13px">${money(p.price)}</span>` : ''}</td>
+          <td>${status}</td>
+          <td style="text-align:right"><div class="actions">
+            <a class="iact" href="/admin/editar?id=${p.id}" aria-label="Editar ${esc(p.name)}" title="Editar">${AICONS.edit}</a>
+            <button class="iact" data-act="feat" data-id="${p.id}" aria-label="${p.featured ? 'Quitar de destacados' : 'Destacar en el inicio'}" title="${p.featured ? 'Quitar de destacados' : 'Destacar en el inicio'}" ${p.featured ? 'style="color:var(--ac)"' : ''}>${AICONS.star(p.featured)}</button>
+            <button class="iact" data-act="avail" data-id="${p.id}" aria-label="${off ? 'Marcar disponible' : 'Marcar agotado'}" title="${off ? 'Marcar disponible' : 'Marcar agotado'}">${off ? AICONS.restore : AICONS.ban}</button>
+            <button class="iact danger" data-act="del" data-id="${p.id}" aria-label="Eliminar ${esc(p.name)}" title="Eliminar">${AICONS.trash}</button>
+          </div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    rows.addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-act]');
+      if (!b) return;
+      const p = products.find((x) => x.id === Number(b.dataset.id));
+      b.disabled = true;
+      try {
+        if (b.dataset.act === 'avail') {
+          Object.assign(p, await api(`/api/admin/products/${p.id}`, { method: 'PATCH', body: { available: !p.available } }));
+          toast(p.available ? 'Marcado como disponible' : 'Marcado como agotado');
+        } else if (b.dataset.act === 'feat') {
+          Object.assign(p, await api(`/api/admin/products/${p.id}`, { method: 'PATCH', body: { featured: !p.featured } }));
+          toast(p.featured ? 'Ahora aparece en Destacados' : 'Quitado de Destacados');
+        } else if (b.dataset.act === 'del') {
+          if (!confirm(`¿Eliminar "${p.name}"? Esta acción no se puede deshacer.`)) { b.disabled = false; return; }
+          await api(`/api/admin/products/${p.id}`, { method: 'DELETE' });
+          products = products.filter((x) => x.id !== p.id);
+          toast('Producto eliminado');
+        }
+        render();
+      } catch (ex) { toast(ex.message); b.disabled = false; }
+    });
+    q.addEventListener('input', render);
+    load().catch((ex) => { rows.innerHTML = `<tr><td colspan="5" class="muted">${esc(ex.message)}</td></tr>`; });
+  </script>
+</body>
+</html>
