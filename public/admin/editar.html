@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
   <link rel="stylesheet" href="/assets/css/admin.css">
   <title>Producto · Panel Mabx</title>
 </head>
@@ -18,25 +19,25 @@
     <div data-sidebar></div>
     <main class="admin-main">
       <div class="admin-crumbs"><a href="/admin/productos">Productos</a> / <span id="crumb">Nuevo producto</span></div>
-      <h1 id="title" style="font-size:38px;font-weight:800;margin:0 0 28px">Crear producto</h1>
+      <h1 id="title" class="reveal reveal-fade" style="font-size:38px;font-weight:800;margin:0 0 28px">Crear producto</h1>
 
       <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
         <form id="form" novalidate style="flex:999 1 460px;min-width:0;display:flex;flex-direction:column;gap:22px">
           <div class="alert err" id="err" role="alert" hidden style="margin:0"></div>
 
-          <div class="panel">
+          <div class="panel reveal reveal-fade">
             <div class="field"><label class="f" for="name">Nombre del producto</label><input id="name" name="name" type="text" maxlength="120" required placeholder="Ej. Camiseta Hombre · Negra"></div>
             <div class="field" style="margin-bottom:0"><label class="f" for="description">Descripción</label><textarea id="description" name="description" rows="3" maxlength="2000" placeholder="Tela, corte, para qué deporte es ideal…"></textarea></div>
           </div>
 
-          <div class="panel dropzone" id="dropzone">
+          <div class="panel dropzone reveal reveal-fade" id="dropzone">
             <span class="flbl" id="photos-lbl">Fotos del producto</span>
             <div class="photos" id="photos" aria-labelledby="photos-lbl"></div>
-            <input type="file" id="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
-            <p class="help" id="photo-help" style="margin:0">Arrastra imágenes aquí o pulsa “+”. La primera foto es la portada. JPG, PNG o WEBP, máx. 5 MB.</p>
+            <input type="file" id="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.jfif,.png,.webp" multiple hidden>
+            <p class="help" id="photo-help" style="margin:0">Arrastra una o varias imágenes a este recuadro o pulsa “+” para elegirlas desde tu computador. La primera foto es la portada. JPG, PNG o WEBP, máx. 5 MB cada una, hasta 10 fotos.</p>
           </div>
 
-          <div class="panel">
+          <div class="panel reveal reveal-fade">
             <div class="field">
               <span class="flbl" id="sizes-lbl">Tallas disponibles</span>
               <div class="chips" id="sizes" role="group" aria-labelledby="sizes-lbl"></div>
@@ -52,7 +53,7 @@
             </div>
           </div>
 
-          <div class="panel">
+          <div class="panel reveal reveal-fade">
             <div class="two">
               <div><label class="f" for="price">Precio ($)</label><input id="price" name="price" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="25.90"></div>
               <div><label class="f" for="sale_price">Precio de oferta ($)</label><input id="sale_price" name="sale_price" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Opcional"></div>
@@ -80,7 +81,7 @@
           </div>
         </form>
 
-        <aside style="flex:1 1 300px;min-width:260px;max-width:340px;position:sticky;top:24px">
+        <aside class="reveal reveal-fade" style="flex:1 1 300px;min-width:260px;max-width:340px;position:sticky;top:24px">
           <p class="secttl" style="margin-bottom:14px">Vista previa</p>
           <div id="preview"></div>
         </aside>
@@ -95,6 +96,8 @@
     renderSidebar('productos');
 
     const DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    const MAX_PHOTOS = 10;
+    const MAX_BYTES = 5 * 1024 * 1024;
     const id = Number(new URLSearchParams(location.search).get('id')) || null;
     const form = document.getElementById('form');
     const err = document.getElementById('err');
@@ -141,7 +144,10 @@
           ${i === 0 ? '<span class="first">Portada</span>' : ''}
           <button type="button" class="rm" data-rm="${i}" aria-label="Quitar foto ${i + 1}">${AICONS.x}</button>
         </div>`).join('') +
-        (images.length < 10 ? `<button type="button" class="photo-add" id="add-photo" aria-label="Subir fotos">${uploading ? '…' : '+'}</button>` : '');
+        '<div class="photo pending" role="status" aria-label="Subiendo foto…"></div>'.repeat(uploading) +
+        (images.length + uploading < MAX_PHOTOS
+          ? '<button type="button" class="photo-add" id="add-photo" aria-label="Añadir fotos (abre el explorador de archivos)" title="Añadir fotos"><span class="plus" aria-hidden="true">+</span><span class="lbl" aria-hidden="true">Añadir</span></button>'
+          : '');
     }
     function values() {
       return {
@@ -165,23 +171,43 @@
       document.getElementById('preview').innerHTML = productCard({
         id: id || 0, name: v.name || 'Nombre del producto', images: v.images, price, sale_price: sale,
         available: v.available, is_new: v.is_new, sizes: v.sizes,
-      }, { cta: false });
+      }, { cta: false, reveal: false });
     }
     const refresh = () => { renderSizes(); renderPhotos(); renderPreview(); };
 
+    // Algunos sistemas (sobre todo Linux) no informan bien el tipo del archivo,
+    // así que también se acepta por extensión. El servidor revisa el contenido real.
+    const isImage = (f) => /^image\/(jpe?g|pjpeg|png|webp)$/i.test(f.type) || /\.(jpe?g|jfif|png|webp)$/i.test(f.name);
+
     async function upload(files) {
-      const list = [...files].slice(0, 10 - images.length);
-      for (const file of list) {
-        if (file.size > 5 * 1024 * 1024) { toast(`${file.name} pesa más de 5 MB`); continue; }
-        uploading++; renderPhotos();
+      let list = [...(files || [])];
+      if (!list.length) return;
+      const problems = [];
+      const notImg = list.filter((f) => !isImage(f));
+      if (notImg.length) problems.push(`${notImg.map((f) => f.name).join(', ')}: solo JPG, PNG o WEBP`);
+      list = list.filter(isImage);
+      const big = list.filter((f) => f.size > MAX_BYTES);
+      if (big.length) problems.push(`${big.map((f) => f.name).join(', ')}: pesa más de 5 MB`);
+      list = list.filter((f) => f.size <= MAX_BYTES);
+      const room = MAX_PHOTOS - images.length - uploading;
+      if (list.length > room) problems.push(`Máximo ${MAX_PHOTOS} fotos por producto`);
+      list = list.slice(0, Math.max(room, 0));
+      if (problems.length) toast(problems.join(' · '));
+      if (!list.length) return;
+
+      uploading += list.length; renderPhotos();
+      // Se suben todas a la vez y se agregan en el mismo orden en que se eligieron
+      const urls = await Promise.all(list.map(async (file) => {
         try {
           const fd = new FormData();
           fd.append('file', file);
           const { url } = await api('/api/admin/upload', { method: 'POST', form: fd });
-          images.push(url);
-        } catch (ex) { toast(ex.message); }
-        uploading--; refresh();
-      }
+          return url;
+        } catch (ex) { toast(`${file.name}: ${ex.message}`); return null; }
+      }));
+      uploading -= list.length;
+      images.push(...urls.filter(Boolean));
+      refresh();
     }
 
     document.getElementById('sizes').addEventListener('click', (e) => {
@@ -204,9 +230,20 @@
     });
     fileInput.addEventListener('change', () => { upload(fileInput.files); fileInput.value = ''; });
     const dz = document.getElementById('dropzone');
-    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag'); });
-    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
-    dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('drag'); upload(e.dataTransfer.files); });
+    const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+    let dragDepth = 0; // evita el parpadeo al pasar sobre las miniaturas
+    dz.addEventListener('dragenter', (e) => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; dz.classList.add('drag'); });
+    dz.addEventListener('dragover', (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    dz.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; dz.classList.remove('drag'); } });
+    dz.addEventListener('drop', (e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault(); e.stopPropagation();
+      dragDepth = 0; dz.classList.remove('drag');
+      upload(e.dataTransfer.files);
+    });
+    // Si sueltan la imagen fuera del recuadro, el navegador no debe abrirla (se perdería el formulario)
+    window.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+    window.addEventListener('drop', (e) => { if (hasFiles(e)) { e.preventDefault(); toast('Suelta las fotos dentro del recuadro “Fotos del producto”'); } });
     form.addEventListener('input', renderPreview);
 
     form.addEventListener('submit', async (e) => {

@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
 </head>
 <body>
   <div data-header></div>
@@ -17,7 +18,7 @@
     <nav class="crumbs" aria-label="Ruta"><a href="/catalogo">Catálogo</a> / <span id="crumb">…</span></nav>
     <div id="pdp"><div class="skeleton" style="min-height:520px"></div></div>
     <section id="related-wrap" style="margin-top:64px" hidden>
-      <h2 style="font-size:30px;font-weight:700;margin-bottom:22px">También te puede gustar</h2>
+      <h2 class="reveal" style="font-size:30px;font-weight:700;margin-bottom:22px">También te puede gustar</h2>
       <div class="grid" id="related"></div>
     </section>
   </main>
@@ -49,11 +50,11 @@
 
       box.innerHTML = `
         <div class="pdp">
-          <div class="gallery">
+          <div class="gallery reveal">
             ${imgs.length > 1 ? `<div class="thumbs" role="group" aria-label="Fotos">${imgs.map((src, i) => `<button type="button" class="thumb${i ? '' : ' on'}" data-i="${i}" aria-label="Ver foto ${i + 1}"><img src="${esc(src)}" alt=""></button>`).join('')}</div>` : ''}
             <div class="main-img"><img id="main-img" src="${esc(imgs[0])}" alt="${esc(p.name)}"></div>
           </div>
-          <div class="pdp-info">
+          <div class="pdp-info reveal">
             ${!p.available ? '<span class="tag alt">Agotado</span>' : p.sale_price != null ? '<span class="tag">En oferta</span>' : p.is_new ? '<span class="tag alt">Nuevo</span>' : ''}
             <h1>${esc(p.name)}</h1>
             <div class="pdp-price">

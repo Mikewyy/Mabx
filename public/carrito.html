@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
 </head>
 <body>
   <div data-header></div>
@@ -30,11 +31,14 @@
     const valid = cart.read().filter((i) => byId.has(i.id));
     if (valid.length !== cart.read().length) cart.write(valid);
 
+    let firstPaint = true;
     function render() {
+      const rv = firstPaint ? ' reveal' : '';
+      firstPaint = false;
       const items = cart.read().map((i) => ({ ...i, product: byId.get(i.id) })).filter((i) => i.product);
       if (!items.length) {
         root.innerHTML = `
-          <div class="cart-empty">
+          <div class="cart-empty reveal">
             <div class="box">
               <div class="icon">${ICONS.cart(42)}</div>
               <h1>Tu carrito está vacío</h1>
@@ -53,14 +57,14 @@
       const message = buildOrderMessage(orderable, total, data.settings.whatsapp_message);
 
       root.innerHTML = `
-        <h1 style="font-size:46px;font-weight:800;margin:40px 0 28px">Tu carrito</h1>
+        <h1 class="${rv}" style="font-size:46px;font-weight:800;margin:40px 0 28px">Tu carrito</h1>
         <div class="cart">
           <div class="cart-items">
             ${items.map((i) => {
               const p = i.product;
               const pct = p.sale_price != null ? Math.round((1 - p.sale_price / p.price) * 100) : 0;
               return `
-              <div class="citem"${p.available ? '' : ' style="opacity:.55"'}>
+              <div class="citem${rv}"${p.available ? '' : ' style="opacity:.55"'}>
                 <a class="cthumb" href="/producto?id=${p.id}" tabindex="-1" aria-hidden="true"><img src="${esc(productImg(p))}" alt=""></a>
                 <div style="flex:1;min-width:0">
                   <h3><a href="/producto?id=${p.id}">${esc(p.name)}</a></h3>
@@ -80,7 +84,7 @@
             <a href="/catalogo" class="link-ac" style="margin-top:6px;text-transform:none;letter-spacing:0">← Seguir comprando</a>
           </div>
 
-          <aside class="summary" aria-label="Resumen del pedido">
+          <aside class="summary${rv}" aria-label="Resumen del pedido">
             <h2>Resumen</h2>
             <div class="sumrow"><span>Subtotal (${units})</span><span>${money(subtotal)}</span></div>
             ${discount > 0.001 ? `<div class="sumrow"><span>Descuentos</span><span class="ac">−${money(discount)}</span></div>` : ''}

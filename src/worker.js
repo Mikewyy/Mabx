@@ -231,12 +231,24 @@ async function uploadImage(request, env) {
   const form = await request.formData();
   const file = form.get('file');
   if (!file || typeof file === 'string') throw new HttpError(400, 'No se recibió ninguna imagen');
-  const ext = IMAGE_TYPES[file.type];
-  if (!ext) throw new HttpError(400, 'Formato no permitido (usa JPG, PNG o WEBP)');
   if (file.size > MAX_IMAGE_BYTES) throw new HttpError(400, 'La imagen pesa más de 5 MB');
-  const key = `productos/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-  await env.IMAGES.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
+  // El tipo que manda el navegador no es fiable (a veces llega vacío, "image/jpg" u
+  // "application/octet-stream"), así que se identifica la imagen por sus primeros bytes.
+  const bytes = await file.arrayBuffer();
+  const type = sniffImageType(new Uint8Array(bytes, 0, Math.min(16, bytes.byteLength)));
+  if (!type) throw new HttpError(400, `"${file.name || 'archivo'}" no es una imagen válida (usa JPG, PNG o WEBP)`);
+  const key = `productos/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${IMAGE_TYPES[type]}`;
+  await env.IMAGES.put(key, bytes, { httpMetadata: { contentType: type } });
   return { url: `/media/${key}` };
+}
+
+function sniffImageType(b) {
+  const ascii = (from, to) => String.fromCharCode(...b.slice(from, to));
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b[0] === 0x89 && ascii(1, 4) === 'PNG') return 'image/png';
+  if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp';
+  if (ascii(4, 8) === 'ftyp' && ['avif', 'avis'].includes(ascii(8, 12))) return 'image/avif';
+  return null;
 }
 
 async function serveImage(url, env) {

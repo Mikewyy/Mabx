@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
   <link rel="stylesheet" href="/assets/css/admin.css">
   <title>Productos · Panel Mabx</title>
 </head>
@@ -17,7 +18,7 @@
   <div class="admin">
     <div data-sidebar></div>
     <main class="admin-main">
-      <div class="admin-head">
+      <div class="admin-head reveal reveal-fade">
         <div>
           <p class="kicker">Panel · Mabx</p>
           <h1>Productos</h1>
@@ -26,12 +27,12 @@
       </div>
 
       <div class="stats">
-        <div class="stat"><p class="lbl">Productos activos</p><p class="val" id="st-active">–</p></div>
-        <div class="stat"><p class="lbl">En oferta</p><p class="val accent" id="st-sale">–</p></div>
-        <div class="stat"><p class="lbl">Agotados</p><p class="val" id="st-out">–</p></div>
+        <div class="stat reveal reveal-fade"><p class="lbl">Productos activos</p><p class="val" id="st-active">–</p></div>
+        <div class="stat reveal reveal-fade"><p class="lbl">En oferta</p><p class="val accent" id="st-sale">–</p></div>
+        <div class="stat reveal reveal-fade"><p class="lbl">Agotados</p><p class="val" id="st-out">–</p></div>
       </div>
 
-      <div class="table-wrap">
+      <div class="table-wrap reveal reveal-fade">
         <div class="table-tools">
           <label class="sr-only" for="q">Buscar producto</label>
           <input id="q" type="text" placeholder="Buscar por nombre…" autocomplete="off">

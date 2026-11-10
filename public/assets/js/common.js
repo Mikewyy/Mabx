@@ -66,13 +66,15 @@ export function buildOrderMessage(lines, total, template) {
 export const whatsappUrl = (number, text = '') => `https://wa.me/${String(number || '').replace(/\D/g, '')}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 
 // ---------- Tarjeta de producto ----------
-export function productCard(p, { compact = false, cta = true } = {}) {
+// reveal: aparece con animación al hacer scroll (ver motion.js). Desactívalo en vistas que se
+// repintan a cada rato, como la vista previa del panel.
+export function productCard(p, { compact = false, cta = true, reveal = true } = {}) {
   const tags = [];
   if (p.sale_price != null) tags.push(`<span class="tag">-${discountPct(p)}%</span>`);
   if (p.is_new) tags.push('<span class="tag alt">Nuevo</span>');
   const href = `/producto?id=${p.id}`;
   return `
-    <article class="card${p.available ? '' : ' soldout'}">
+    <article class="card${p.available ? '' : ' soldout'}${reveal ? ' reveal' : ''}">
       <a class="pimg" href="${href}" tabindex="-1" aria-hidden="true">
         <img src="${esc(productImg(p))}" alt="" loading="lazy">
         ${p.available ? '' : '<span class="soldout-tag">Agotado</span>'}
@@ -121,15 +123,15 @@ export function renderChrome(active) {
     footer.outerHTML = `
       <footer class="site-footer" id="contacto">
         <div class="wrap cols">
-          <div>
+          <div class="reveal">
             <div class="logo" style="margin-bottom:16px">${ICONS.logo(24)}<span style="font-size:24px">MABX</span></div>
             <p class="muted" style="font-size:14px;line-height:1.6;max-width:280px;margin:0">Nacidos para superarnos. Ropa deportiva desde Portoviejo, Ecuador.</p>
           </div>
-          <div>
+          <div class="reveal">
             <h3>Tienda</h3>
             <div class="links"><a href="/catalogo">Catálogo</a><a href="/catalogo?ofertas=1">Ofertas</a><a href="/carrito">Carrito</a></div>
           </div>
-          <div>
+          <div class="reveal">
             <h3>Contacto</h3>
             <div class="links" data-contact>
               <a class="btn btn-ac btn-sm" data-wa-link href="#" target="_blank" rel="noopener" style="width:fit-content;color:#0A0A0A">${ICONS.whatsapp()} WhatsApp</a>

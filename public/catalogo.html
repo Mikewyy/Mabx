@@ -11,17 +11,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
 </head>
 <body>
   <div data-header></div>
   <main class="wrap">
-    <div class="page-head">
+    <div class="page-head reveal">
       <p class="eyebrow">Tienda</p>
       <h1 id="title">Catálogo</h1>
     </div>
 
     <div class="catalog">
-      <details class="filters" id="filters" open>
+      <details class="filters reveal" id="filters" open>
         <summary>
           <h2>Filtros</h2>
           <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -56,7 +57,7 @@
       </details>
 
       <section class="results" aria-labelledby="title">
-        <div class="results-bar">
+        <div class="results-bar reveal">
           <span id="count" aria-live="polite">Cargando…</span>
           <label>Ordenar:
             <select class="select" id="sort">
@@ -111,6 +112,7 @@
     if (params.get('cat')) form.querySelectorAll('[name=cat]').forEach((i) => { if (i.dataset.slug === params.get('cat')) i.checked = true; });
     if (params.get('ofertas')) document.getElementById('title').textContent = 'Ofertas';
 
+    let firstPaint = true;
     function apply() {
       const cats = [...form.querySelectorAll('[name=cat]:checked')].map((i) => Number(i.value));
       const genders = [...form.querySelectorAll('[name=genero]:checked')].map((i) => i.value);
@@ -135,8 +137,9 @@
       });
       count.textContent = `${list.length} producto${list.length === 1 ? '' : 's'}`;
       grid.innerHTML = list.length
-        ? list.map((p) => productCard(p, { cta: false })).join('')
+        ? list.map((p) => productCard(p, { cta: false, reveal: firstPaint })).join('')
         : '<div class="empty" style="grid-column:1/-1">No encontramos prendas con esos filtros. Prueba quitando alguno.</div>';
+      firstPaint = false;
     }
 
     form.addEventListener('input', apply);

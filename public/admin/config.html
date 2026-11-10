@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
   <link rel="stylesheet" href="/assets/css/admin.css">
   <title>Ofertas, categorías y WhatsApp · Panel Mabx</title>
 </head>
@@ -17,7 +18,7 @@
   <div class="admin">
     <div data-sidebar></div>
     <main class="admin-main">
-      <div class="admin-head">
+      <div class="admin-head reveal reveal-fade">
         <div>
           <p class="kicker">Panel · Mabx</p>
           <h1>Ofertas, categorías y WhatsApp</h1>
@@ -26,7 +27,7 @@
 
       <div class="config-grid">
         <!-- WHATSAPP Y CONTACTO -->
-        <form class="panel" id="whatsapp" style="grid-column:1 / -1;scroll-margin-top:80px">
+        <form class="panel reveal reveal-fade" id="whatsapp" style="grid-column:1 / -1;scroll-margin-top:80px">
           <p class="secttl">Configuración de pedidos</p>
           <h2 style="font-size:24px;font-weight:700;margin:0 0 20px">WhatsApp y contacto</h2>
           <div class="wa-grid">
@@ -54,7 +55,7 @@
         </form>
 
         <!-- CATEGORÍAS -->
-        <section class="panel" id="categorias" style="scroll-margin-top:80px">
+        <section class="panel reveal reveal-fade" id="categorias" style="scroll-margin-top:80px">
           <p class="secttl">Organización</p>
           <h2 style="font-size:22px;font-weight:700;margin:0 0 16px">Categorías</h2>
           <div class="chips" id="cats" style="gap:10px"></div>
@@ -66,7 +67,7 @@
         </section>
 
         <!-- OFERTAS / PROMOCIONES -->
-        <section class="panel" id="ofertas" style="scroll-margin-top:80px">
+        <section class="panel reveal reveal-fade" id="ofertas" style="scroll-margin-top:80px">
           <p class="secttl">Promociones</p>
           <h2 style="font-size:22px;font-weight:700;margin:0 0 8px">Ofertas activas</h2>
           <p class="help" style="margin:0 0 8px">Se muestran en el banner del inicio. El descuento de cada prenda se pone en su “Precio de oferta”.</p>
