@@ -6,54 +6,77 @@
   <title>Mabx · Ropa deportiva en Portoviejo</title>
   <meta name="description" content="Mabx: ropa deportiva para entrenar sin excusas. Arma tu pedido y confírmalo por WhatsApp. Envíos a todo el Ecuador.">
   <meta name="theme-color" content="#0A0A0A">
+  <meta property="og:title" content="Mabx · Nacidos para superarnos">
+  <meta property="og:description" content="Ropa deportiva para entrenar sin excusas. Pide por WhatsApp, envíos a todo el Ecuador.">
+  <meta property="og:image" content="/img/banner-final-1200.webp">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <!-- Banner del hero: en celular nunca baja el original de 3344px (ahorra datos móviles) -->
+  <link rel="preload" as="image" media="(max-width: 860px)" imagesrcset="/img/banner-final-1200.webp 1200w, /img/banner-final-1800.webp 1800w, /img/banner-final-2600.webp 2600w" imagesizes="1000px" fetchpriority="high">
+  <link rel="preload" as="image" media="(min-width: 861px)" imagesrcset="/img/banner-final-1200.webp 1200w, /img/banner-final-1800.webp 1800w, /img/banner-final-2600.webp 2600w, /img/bannerFInal.webp 3344w" imagesizes="max(70vw, 180vh)" fetchpriority="high">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
   <script src="/assets/js/motion.js"></script>
 </head>
 <body>
   <div data-header></div>
+  <noscript><p class="noscript">Activa JavaScript en tu navegador para ver los productos y hacer tu pedido.</p></noscript>
   <main>
-    <section class="hero">
-      <div class="glow"></div>
-      <div class="wrap">
+    <!-- Hero: banner a sangre, titular gigante y la brújula que se dibuja al cargar -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-bg">
+        <picture>
+          <source media="(max-width: 860px)" srcset="/img/banner-final-1200.webp 1200w, /img/banner-final-1800.webp 1800w, /img/banner-final-2600.webp 2600w" sizes="1000px">
+          <img src="/img/banner-final-1800.webp" srcset="/img/banner-final-1200.webp 1200w, /img/banner-final-1800.webp 1800w, /img/banner-final-2600.webp 2600w, /img/bannerFInal.webp 3344w" sizes="max(70vw, 180vh)" width="3344" height="1882" alt="Pareja en el gimnasio con camisetas Mabx" fetchpriority="high">
+        </picture>
+      </div>
+      <svg class="hero-emblem" viewBox="0 0 48 48" fill="none" aria-hidden="true" data-emblem></svg>
+      <div class="hero-slash" aria-hidden="true"><i></i><i></i><i></i></div>
+
+      <div class="wrap hero-inner">
         <div class="hero-copy">
-          <p class="eyebrow reveal">Ropa deportiva · Portoviejo</p>
-          <h1 class="reveal">Nacidos <br>para <br><em>superarnos</em></h1>
-          <p class="lead reveal">Prendas para entrenar sin excusas. Hechas para quien no se conforma, sin importar género ni nivel.</p>
-          <div class="hero-actions reveal">
-            <a href="/catalogo" class="btn btn-ac">Ver catálogo</a>
-            <a href="/catalogo?ofertas=1" class="btn btn-gh">Ver ofertas</a>
-          </div>
-        </div>
-        <div class="hero-media reveal">
-          <div class="frame">
-            <picture>
-              <img src="/img/banner-mabx-960.webp" width="960" height="540" alt="Pareja entrenando en el gimnasio con camisetas Mabx" fetchpriority="high">
-            </picture>
+          <p class="eyebrow" data-enter style="--d:.04s">Ropa deportiva · Portoviejo</p>
+          <h1 id="hero-title">
+            <span class="l"><span>Nacidos</span></span>
+            <span class="l"><span>para</span></span>
+            <span class="l"><span class="ac">superarnos</span></span>
+          </h1>
+          <p class="lead" data-enter style="--d:.3s">Prendas para gym, running o para tu día a día. Hechas para quien no se conforma, sin importar género ni nivel.</p>
+          <div class="hero-actions" data-enter style="--d:.38s">
+            <a href="/catalogo" class="btn btn-ac btn-lg">Ver catálogo <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+            <a href="/catalogo?ofertas=1" class="btn btn-gh btn-lg">Ver ofertas</a>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="strip" aria-label="Beneficios">
-      <div class="wrap">
-        <span>✦ Pedido fácil por WhatsApp</span>
-        <span>✦ Envíos a todo el Ecuador</span>
-        <span>✦ Calidad para entrenar</span>
-      </div>
+    <!-- Beneficios: barra flotante que monta el borde inferior del hero -->
+    <section class="wrap perks-bar" aria-label="Beneficios" data-enter style="--d:.48s">
+      <ul>
+        <li>
+          <span class="perk-ic" data-icon="whatsapp"></span>
+          <div><strong>Pedido por WhatsApp</strong><span>Sin cuentas ni registros. Tu pedido llega ya escrito.</span></div>
+        </li>
+        <li>
+          <span class="perk-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v10h-11zM13.5 10h4l3.5 3.5v3h-7.5"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>
+          <div><strong>Envíos a todo el Ecuador</strong><span>Coordinamos costo y tiempo contigo.</span></div>
+        </li>
+        <li>
+          <span class="perk-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3.5 4 5.5 2.5 10l3 1v9.5h13V11l3-1L20 5.5l-4-2c-.6 1.6-2.2 2.6-4 2.6S8.6 5.1 8 3.5Z"/></svg></span>
+          <div><strong>Hombre y mujer</strong><span>Cortes regular y entallado para entrenar cómodo.</span></div>
+        </li>
+      </ul>
     </section>
 
-    <section class="section">
+    <section class="section" aria-labelledby="dest-title">
       <div class="wrap">
         <div class="section-head reveal">
           <div>
             <p class="eyebrow">Lo más pedido</p>
-            <h2>Destacados</h2>
+            <h2 id="dest-title">Destacados</h2>
           </div>
-          <a href="/catalogo" class="link-ac">Ver todo →</a>
+          <a href="/catalogo" class="link-ac">Ver todo el catálogo <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         </div>
         <div class="grid" id="featured">
           <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -61,15 +84,84 @@
       </div>
     </section>
 
-    <section class="section" style="padding-top:0">
+    <!-- Colecciones -->
+    <section class="section tight" aria-labelledby="cats-title">
+      <div class="wrap">
+        <h2 id="cats-title" class="sr-only">Colecciones</h2>
+        <div class="cats">
+          <a class="cat-tile reveal" href="/catalogo?genero=mujer">
+            <img src="/img/demo/camisaDama2.png" alt="" loading="lazy">
+            <span class="num">01 / Colección</span>
+            <div>
+              <h3>Mujer</h3>
+              <span class="cta">Ver colección <i></i></span>
+            </div>
+          </a>
+          <a class="cat-tile reveal" href="/catalogo?genero=hombre">
+            <img src="/img/demo/hombre-negra.png" alt="" loading="lazy">
+            <span class="num">02 / Colección</span>
+            <div>
+              <h3>Hombre</h3>
+              <span class="cta">Ver colección <i></i></span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historia de la brújula -->
+    <section class="section" aria-labelledby="story-title">
+      <div class="wrap story">
+        <div class="visor reveal">
+          <img src="/img/campana-mabx-960.webp" srcset="/img/campana-mabx-960.webp 960w, /img/campana-mabx-1600.webp 1600w" sizes="(max-width: 860px) 200vw, 110vw" width="960" height="540" alt="Atletas con camisetas Mabx en un gimnasio" loading="lazy">
+          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+          <span class="stamp" data-stamp>Tu norte</span>
+        </div>
+        <div>
+          <p class="eyebrow reveal">La brújula Mabx</p>
+          <h2 id="story-title" class="reveal">Tu norte es <span class="accent">superarte</span></h2>
+          <p class="copy-lg reveal">La brújula de nuestro logo no marca un lugar: marca una dirección. Cada prenda está hecha para acompañarte el día que decides ir un poco más lejos que ayer.</p>
+          <ul class="points reveal" data-points>
+            <li>Tela liviana y transpirable</li>
+            <li>Cortes pensados para él y para ella</li>
+            <li>La brújula al pecho en cada prenda</li>
+          </ul>
+          <a href="/catalogo" class="btn btn-gh reveal">Conocer la colección <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cómo pedir -->
+    <section class="section tight" aria-labelledby="steps-title">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <div>
+            <p class="eyebrow">Así de simple</p>
+            <h2 id="steps-title">Pide en 3 pasos</h2>
+          </div>
+        </div>
+        <div class="steps reveal">
+          <span class="steps-line" aria-hidden="true"></span>
+          <ol class="steps-list">
+          <li class="step"><span class="n">01</span><h3>Elige tu prenda</h3><p>Explora el catálogo y filtra por talla, género o precio.</p></li>
+          <li class="step"><span class="n">02</span><h3>Arma tu pedido</h3><p>Agrega tallas y cantidades al carrito. Sin crear cuentas.</p></li>
+          <li class="step"><span class="n">03</span><h3>Confirma por WhatsApp</h3><p>Te llevamos a un chat con tu pedido ya escrito y coordinamos pago y envío.</p></li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="section tight" aria-labelledby="promo-title">
       <div class="wrap">
         <div class="promo reveal">
           <div class="glow"></div>
+          <svg class="promo-emblem" viewBox="0 0 48 48" fill="none" aria-hidden="true" data-emblem></svg>
           <div class="inner">
-            <h2>Entrena con <span class="accent">actitud</span></h2>
+            <p class="eyebrow">Ofertas activas</p>
+            <h2 id="promo-title">Entrena con <span class="accent">actitud</span></h2>
             <ul class="promo-list" id="promos" hidden></ul>
             <p>Arma tu pedido en segundos y confírmalo por WhatsApp. Sin cuentas, sin complicaciones.</p>
-            <a href="/catalogo" class="btn btn-ac">Comprar ahora</a>
+            <a href="/catalogo" class="btn btn-ac btn-lg">Comprar ahora <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
           </div>
         </div>
       </div>
@@ -78,8 +170,21 @@
   <div data-footer></div>
 
   <script type="module">
-    import { renderChrome, getCatalog, productCard, esc, errorBox } from '/assets/js/common.js';
+    import { renderChrome, getCatalog, productCard, esc, errorBox, emblem, EMBLEM_PATHS, ICONS } from '/assets/js/common.js';
     renderChrome('inicio');
+
+    // Brújulas decorativas (hero y cierre) a partir del mismo dibujo del logo
+    document.querySelectorAll('[data-emblem]').forEach((svg) => {
+      svg.innerHTML = EMBLEM_PATHS.arcs.map((d) => `<path class="em-arc" d="${d}" stroke="currentColor" stroke-linecap="round" pathLength="1"/>`).join('')
+        + `<path class="em-star" d="${EMBLEM_PATHS.star}"/>`;
+    });
+    // Íconos repetidos
+    document.querySelectorAll('.cat-tile .cta i').forEach((i) => { i.innerHTML = ICONS.arrow(16); });
+    document.querySelector('[data-stamp]').insertAdjacentHTML('afterbegin', emblem(20));
+    document.querySelectorAll('[data-points] li').forEach((li) => li.insertAdjacentHTML('afterbegin', emblem(18)));
+
+    document.querySelector('[data-icon="whatsapp"]').innerHTML = ICONS.whatsapp(22);
+
     const grid = document.getElementById('featured');
     try {
       const { products, promotions } = await getCatalog();

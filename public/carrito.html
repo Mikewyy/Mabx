@@ -4,24 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tu carrito · Mabx</title>
+  <meta name="description" content="Revisa tu pedido de ropa deportiva Mabx y confírmalo por WhatsApp.">
   <meta name="theme-color" content="#0A0A0A">
   <meta name="robots" content="noindex">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
   <script src="/assets/js/motion.js"></script>
 </head>
 <body>
   <div data-header></div>
-  <main class="wrap" id="root"><div class="skeleton" style="margin-top:40px;min-height:400px"></div></main>
+  <noscript><p class="noscript">Activa JavaScript en tu navegador para ver los productos y hacer tu pedido.</p></noscript>
+  <main class="wrap cart-page" id="root"><div class="skeleton" style="margin-top:40px;min-height:400px"></div></main>
+  <!-- Barra fija en celular: total + WhatsApp (se oculta cuando el botón del resumen está a la vista) -->
+  <div class="cart-bar" id="cart-bar" hidden></div>
   <div data-footer></div>
 
   <script type="module">
-    import { renderChrome, getCatalog, cart, esc, money, finalPrice, productImg, buildOrderMessage, whatsappUrl, ICONS, errorBox } from '/assets/js/common.js';
+    import { renderChrome, getCatalog, cart, esc, money, finalPrice, productImg, buildOrderMessage, whatsappUrl, ICONS, errorBox, EMBLEM_PATHS } from '/assets/js/common.js';
     renderChrome('carrito');
     const root = document.getElementById('root');
+    const bar = document.getElementById('cart-bar');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
     let data;
     try { data = await getCatalog(); } catch { errorBox(root); throw new Error('catalog'); }
@@ -31,19 +37,41 @@
     const valid = cart.read().filter((i) => byId.has(i.id));
     if (valid.length !== cart.read().length) cart.write(valid);
 
+    const progress = (step) => `
+      <ol class="cart-steps" aria-label="Proceso de compra">
+        ${['Elige tus prendas', 'Arma tu pedido', 'Confirma por WhatsApp'].map((t, i) => `
+          <li class="${i < step ? 'done' : i === step ? 'now' : ''}"${i === step ? ' aria-current="step"' : ''}>
+            <span class="dot">${i < step ? ICONS.check(14) : i + 1}</span>${t}
+          </li>`).join('')}
+      </ol>`;
+
     let firstPaint = true;
+    let lastTotal = null;
+    let waObserver;
+
     function render() {
       const rv = firstPaint ? ' reveal' : '';
+      const wasFirst = firstPaint;
       firstPaint = false;
       const items = cart.read().map((i) => ({ ...i, product: byId.get(i.id) })).filter((i) => i.product);
+      waObserver?.disconnect();
+
       if (!items.length) {
+        bar.hidden = true;
+        lastTotal = null;
         root.innerHTML = `
-          <div class="cart-empty reveal">
+          <div class="cart-empty${rv}">
             <div class="box">
-              <div class="icon">${ICONS.cart(42)}</div>
+              <svg class="page-emblem empty-emblem" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                ${EMBLEM_PATHS.arcs.map((d) => `<path class="em-arc" d="${d}" stroke="currentColor" stroke-linecap="round" pathLength="1"/>`).join('')}
+                <path class="em-star" d="${EMBLEM_PATHS.star}"/>
+              </svg>
               <h1>Tu carrito está vacío</h1>
               <p>Todavía no agregaste prendas. Explora el catálogo y arma tu pedido para entrenar sin excusas.</p>
-              <a href="/catalogo" class="btn btn-ac btn-lg">Ir al catálogo</a>
+              <div class="cart-empty-actions">
+                <a href="/catalogo" class="btn btn-ac btn-lg">Ir al catálogo <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+                <a href="/catalogo?ofertas=1" class="btn btn-gh btn-lg">Ver ofertas</a>
+              </div>
             </div>
           </div>`;
         return;
@@ -55,51 +83,90 @@
       const total = orderable.reduce((s, i) => s + finalPrice(i.product) * i.qty, 0);
       const discount = subtotal - total;
       const message = buildOrderMessage(orderable, total, data.settings.whatsapp_message);
+      const waHref = esc(whatsappUrl(data.settings.whatsapp_number, message));
+      const waOff = orderable.length ? '' : ' aria-disabled="true" tabindex="-1"';
 
       root.innerHTML = `
-        <h1 class="${rv}" style="font-size:46px;font-weight:800;margin:40px 0 28px">Tu carrito</h1>
+        <div class="cart-head${rv}">
+          <div>
+            <p class="eyebrow">Tu pedido</p>
+            <h1>Tu carrito <span class="cart-units">${units} ${units === 1 ? 'prenda' : 'prendas'}</span></h1>
+          </div>
+          ${progress(1)}
+        </div>
         <div class="cart">
           <div class="cart-items">
+            <h2 class="sr-only">Prendas en tu carrito</h2>
             ${items.map((i) => {
               const p = i.product;
               const pct = p.sale_price != null ? Math.round((1 - p.sale_price / p.price) * 100) : 0;
               return `
-              <div class="citem${rv}"${p.available ? '' : ' style="opacity:.55"'}>
+              <div class="citem${rv}${p.available ? '' : ' off'}" data-row="${p.id}|${esc(i.size)}">
                 <a class="cthumb" href="/producto?id=${p.id}" tabindex="-1" aria-hidden="true"><img src="${esc(productImg(p))}" alt=""></a>
-                <div style="flex:1;min-width:0">
+                <div class="cinfo">
                   <h3><a href="/producto?id=${p.id}">${esc(p.name)}</a></h3>
-                  <p class="meta">Talla ${esc(i.size)}${pct ? ` · <span class="accent">-${pct}%</span>` : ''}${p.available ? '' : ' · <strong>Agotado</strong>'}</p>
+                  <p class="meta"><span class="size-tag">Talla ${esc(i.size)}</span>${pct ? `<span class="accent">-${pct}%</span>` : ''}${p.available ? '' : '<strong>Agotado</strong>'}</p>
                   <div class="qty sm">
-                    <button type="button" data-act="dec" data-id="${p.id}" data-size="${esc(i.size)}" aria-label="Quitar una unidad">−</button>
-                    <output>${i.qty}</output>
-                    <button type="button" data-act="inc" data-id="${p.id}" data-size="${esc(i.size)}" aria-label="Agregar una unidad">+</button>
+                    <button type="button" data-act="dec" data-id="${p.id}" data-size="${esc(i.size)}" aria-label="Quitar una unidad de ${esc(p.name)}, talla ${esc(i.size)}">−</button>
+                    <output aria-label="Cantidad">${i.qty}</output>
+                    <button type="button" data-act="inc" data-id="${p.id}" data-size="${esc(i.size)}" aria-label="Agregar una unidad de ${esc(p.name)}, talla ${esc(i.size)}">+</button>
                   </div>
                 </div>
                 <div class="right">
                   <span class="price">${money(finalPrice(p) * i.qty)}</span>
-                  <div><button type="button" class="link-btn" data-act="del" data-id="${p.id}" data-size="${esc(i.size)}">Quitar</button></div>
+                  ${i.qty > 1 ? `<span class="each">${money(finalPrice(p))} c/u</span>` : ''}
+                  <button type="button" class="link-btn" data-act="del" data-id="${p.id}" data-size="${esc(i.size)}" aria-label="Quitar ${esc(p.name)}, talla ${esc(i.size)}">Quitar</button>
                 </div>
               </div>`;
             }).join('')}
-            <a href="/catalogo" class="link-ac" style="margin-top:6px;text-transform:none;letter-spacing:0">← Seguir comprando</a>
+            <a href="/catalogo" class="link-ac back-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Seguir comprando</a>
           </div>
-
           <aside class="summary${rv}" aria-label="Resumen del pedido">
             <h2>Resumen</h2>
             <div class="sumrow"><span>Subtotal (${units})</span><span>${money(subtotal)}</span></div>
             ${discount > 0.001 ? `<div class="sumrow"><span>Descuentos</span><span class="ac">−${money(discount)}</span></div>` : ''}
             <div class="sumrow"><span>Envío</span><span>A coordinar</span></div>
-            <div class="sumtotal"><span>Total estimado</span><span class="price">${money(total)}</span></div>
-            <a class="btn btn-wa btn-lg btn-block" id="wa" href="${esc(whatsappUrl(data.settings.whatsapp_number, message))}" target="_blank" rel="noopener"${orderable.length ? '' : ' aria-disabled="true" style="pointer-events:none;opacity:.45"'}>
+            <div class="sumtotal"><span>Total estimado</span><span class="price" id="total">${money(total)}</span></div>
+            <a class="btn btn-wa btn-lg btn-block wa-cta" id="wa" href="${waHref}" target="_blank" rel="noopener"${waOff}>
               ${ICONS.whatsapp(22)} Pedir por WhatsApp
             </a>
-            <p class="muted" style="font-size:12px;text-align:center;margin:14px 0 0">Te llevaremos a un chat con tu pedido ya escrito.</p>
+            <p class="wa-note">Te llevamos a un chat con tu pedido ya escrito. Ahí coordinamos pago y envío.</p>
             <div class="msg-preview">
-              <p class="lbl">Mensaje que se enviará</p>
-              <p class="txt">${esc(message)}</p>
+              <p class="lbl">Así se verá tu mensaje</p>
+              <div class="bubble"><p class="txt">${esc(message)}</p><span class="tick" aria-hidden="true">${ICONS.check(14)}${ICONS.check(14)}</span></div>
             </div>
           </aside>
         </div>`;
+
+      // Barra fija de celular
+      bar.innerHTML = `
+        <div class="cart-bar-in">
+          <div><span class="lbl">Total</span><span class="price">${money(total)}</span></div>
+          <a class="btn btn-wa" href="${waHref}" target="_blank" rel="noopener"${waOff}>${ICONS.whatsapp(20)} Pedir</a>
+        </div>`;
+      bar.hidden = false;
+      const wa = document.getElementById('wa');
+      waObserver = new IntersectionObserver(([e]) => bar.classList.toggle('away', e.isIntersecting), { threshold: 0.2 });
+      waObserver.observe(wa);
+
+      // El total da un pequeño "tick" cuando cambia
+      if (!wasFirst && lastTotal != null && Math.abs(lastTotal - total) > 0.001) {
+        document.querySelectorAll('#total, .cart-bar .price').forEach((el) => el.classList.add('tick'));
+      }
+      lastTotal = total;
+    }
+
+    // La fila se cierra suavemente antes de desaparecer
+    function collapse(row, done) {
+      if (reduced.matches || !row || !row.animate) return done();
+      const h = row.offsetHeight;
+      row.style.overflow = 'hidden';
+      const anim = row.animate([
+        { height: `${h}px`, opacity: 1, transform: 'translateX(0)' },
+        { height: `${h}px`, opacity: 0, transform: 'translateX(-12px)', offset: 0.45 },
+        { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px', marginBottom: '-16px', borderWidth: '0px', transform: 'translateX(-12px)' },
+      ], { duration: 320, easing: 'cubic-bezier(.23, 1, .32, 1)', fill: 'forwards' });
+      anim.onfinish = done;
     }
 
     root.addEventListener('click', (e) => {
@@ -109,10 +176,13 @@
       const size = b.dataset.size;
       const item = cart.read().find((i) => i.id === id && i.size === size);
       if (!item) return;
-      if (b.dataset.act === 'inc') cart.setQty(id, size, Math.min(99, item.qty + 1));
-      if (b.dataset.act === 'dec') cart.setQty(id, size, item.qty - 1);
-      if (b.dataset.act === 'del') cart.remove(id, size);
-      render();
+      const row = b.closest('.citem');
+      if (b.dataset.act === 'inc') { cart.setQty(id, size, Math.min(99, item.qty + 1)); render(); }
+      if (b.dataset.act === 'dec') {
+        if (item.qty > 1) { cart.setQty(id, size, item.qty - 1); render(); }
+        else collapse(row, () => { cart.remove(id, size); render(); });
+      }
+      if (b.dataset.act === 'del') collapse(row, () => { cart.remove(id, size); render(); });
     });
     window.addEventListener('storage', render);
     render();

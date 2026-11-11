@@ -10,7 +10,7 @@
 // "reducir movimiento" o si algo falla, la clase no se pone y todo se ve normal.
 (function () {
   var root = document.documentElement;
-  var STEP = 0.08;     // segundos entre elementos de una misma cascada
+  var STEP = 0.06;     // segundos entre elementos de una misma cascada
   var MAX_STEPS = 6;   // la cascada nunca tarda más de ~0.5s en completarse
 
   try {

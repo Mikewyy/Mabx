@@ -9,22 +9,34 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
   <script src="/assets/js/motion.js"></script>
 </head>
 <body>
   <div data-header></div>
-  <main class="wrap">
-    <div class="page-head reveal">
-      <p class="eyebrow">Tienda</p>
-      <h1 id="title">Catálogo</h1>
-    </div>
+  <noscript><p class="noscript">Activa JavaScript en tu navegador para ver los productos y hacer tu pedido.</p></noscript>
+  <main>
+    <!-- Cabecera de la tienda: la brújula se dibuja al cargar -->
+    <section class="shop-head" aria-labelledby="title">
+      <svg class="page-emblem" viewBox="0 0 48 48" fill="none" aria-hidden="true" data-emblem></svg>
+      <div class="wrap">
+        <p class="eyebrow" data-enter style="--d:.04s" id="kicker">Tienda Mabx</p>
+        <h1 id="title" data-enter style="--d:.1s">Catálogo</h1>
+        <p class="shop-sub" data-enter style="--d:.18s">Ropa deportiva para gym, running y tu día a día. Elige, arma tu pedido y confírmalo por WhatsApp.</p>
+        <div class="quick" role="group" aria-label="Accesos rápidos" data-enter style="--d:.26s">
+          <button type="button" class="qchip" data-quick="todo">Todo</button>
+          <button type="button" class="qchip" data-quick="mujer">Mujer</button>
+          <button type="button" class="qchip" data-quick="hombre">Hombre</button>
+          <button type="button" class="qchip" data-quick="ofertas">Ofertas</button>
+        </div>
+      </div>
+    </section>
 
-    <div class="catalog">
-      <details class="filters reveal" id="filters" open>
+    <div class="wrap catalog">
+      <details class="filters" id="filters" open>
         <summary>
-          <h2>Filtros</h2>
+          <h2>Filtros <span class="fcount" id="fcount" hidden></span></h2>
           <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </summary>
         <form class="fbody" id="filter-form">
@@ -52,14 +64,14 @@
             <input type="range" class="range" id="f-price" name="precio" min="0" max="100" step="1" value="100">
             <div class="range-vals"><span id="p-min">$0</span><strong id="p-cur">$100</strong></div>
           </fieldset>
-          <button type="reset" class="btn btn-gh btn-sm btn-block" style="margin-top:22px">Limpiar filtros</button>
+          <button type="reset" class="btn btn-gh btn-sm btn-block" style="margin-top:24px">Limpiar filtros</button>
         </form>
       </details>
 
-      <section class="results" aria-labelledby="title">
-        <div class="results-bar reveal">
-          <span id="count" aria-live="polite">Cargando…</span>
-          <label>Ordenar:
+      <section class="results" aria-label="Productos">
+        <div class="results-bar">
+          <span class="rcount" id="count" aria-live="polite">Cargando…</span>
+          <label class="sort">Ordenar
             <select class="select" id="sort">
               <option value="recientes">Más recientes</option>
               <option value="precio-asc">Precio: menor a mayor</option>
@@ -68,6 +80,7 @@
             </select>
           </label>
         </div>
+        <div class="active-filters" id="active" hidden></div>
         <div class="grid grid-3" id="grid">
           <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
         </div>
@@ -77,15 +90,24 @@
   <div data-footer></div>
 
   <script type="module">
-    import { renderChrome, getCatalog, productCard, esc, money, finalPrice, discountPct, errorBox } from '/assets/js/common.js';
+    import { renderChrome, getCatalog, productCard, esc, money, finalPrice, discountPct, errorBox, emblem, EMBLEM_PATHS, ICONS } from '/assets/js/common.js';
     const params = new URLSearchParams(location.search);
     renderChrome(params.get('ofertas') ? 'ofertas' : 'catalogo');
+
+    // Brújula de la cabecera
+    document.querySelectorAll('[data-emblem]').forEach((svg) => {
+      svg.innerHTML = EMBLEM_PATHS.arcs.map((d) => `<path class="em-arc" d="${d}" stroke="currentColor" stroke-linecap="round" pathLength="1"/>`).join('')
+        + `<path class="em-star" d="${EMBLEM_PATHS.star}"/>`;
+    });
 
     const form = document.getElementById('filter-form');
     const grid = document.getElementById('grid');
     const count = document.getElementById('count');
     const sortSel = document.getElementById('sort');
     const priceInput = document.getElementById('f-price');
+    const activeBox = document.getElementById('active');
+    const fcount = document.getElementById('fcount');
+    const titleEl = document.getElementById('title');
     const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
     const selectedSizes = new Set();
 
@@ -97,6 +119,7 @@
     let data;
     try { data = await getCatalog(); } catch { errorBox(grid); count.textContent = ''; throw new Error('catalog'); }
     const { products, categories } = data;
+    const catName = new Map(categories.map((c) => [c.id, c.name]));
 
     // Construir filtros con los datos reales
     document.getElementById('f-cats').innerHTML = categories
@@ -107,18 +130,46 @@
     const maxPrice = Math.max(10, Math.ceil(Math.max(0, ...products.map(finalPrice))));
     priceInput.max = maxPrice; priceInput.value = maxPrice;
 
-    // Filtros que vienen en la dirección (ej. /catalogo?ofertas=1 o ?cat=camisetas)
+    // Filtros que vienen en la dirección (ej. /catalogo?ofertas=1, ?cat=camisetas o ?genero=mujer)
     if (params.get('ofertas')) form.ofertas.checked = true;
     if (params.get('cat')) form.querySelectorAll('[name=cat]').forEach((i) => { if (i.dataset.slug === params.get('cat')) i.checked = true; });
-    if (params.get('ofertas')) document.getElementById('title').textContent = 'Ofertas';
+    if (params.get('genero')) form.querySelectorAll('[name=genero]').forEach((i) => { if (i.value === params.get('genero')) i.checked = true; });
+
+    const checked = (name) => [...form.querySelectorAll(`[name=${name}]:checked`)];
+    const GENDER_LABEL = { hombre: 'Hombre', mujer: 'Mujer', unisex: 'Unisex' };
+
+    // Píldoras de filtros activos (cada una quita su filtro)
+    function renderActive(max) {
+      const pills = [];
+      if (form.ofertas.checked) pills.push(['ofertas', '', 'Solo ofertas']);
+      if (form.disponibles.checked) pills.push(['disponibles', '', 'Solo disponibles']);
+      checked('cat').forEach((i) => pills.push(['cat', i.value, catName.get(Number(i.value)) || 'Categoría']));
+      checked('genero').forEach((i) => pills.push(['genero', i.value, GENDER_LABEL[i.value]]));
+      selectedSizes.forEach((s) => pills.push(['talla', s, `Talla ${s}`]));
+      if (max < maxPrice) pills.push(['precio', '', `Hasta ${money(max).replace('.00', '')}`]);
+      fcount.hidden = !pills.length;
+      fcount.textContent = pills.length;
+      activeBox.hidden = !pills.length;
+      activeBox.innerHTML = pills.map(([k, v, label]) =>
+        `<button type="button" class="apill" data-clear="${k}" data-val="${esc(v)}" aria-label="Quitar filtro: ${esc(label)}">${esc(label)}${ICONS.close.replace('width="24" height="24"', 'width="14" height="14"')}</button>`).join('')
+        + (pills.length > 1 ? '<button type="button" class="apill-clear" data-clear="all">Limpiar todo</button>' : '');
+    }
+
+    // Accesos rápidos de la cabecera: reflejan el estado de los filtros
+    function syncQuick() {
+      const g = checked('genero').map((i) => i.value);
+      const state = { todo: !g.length && !form.ofertas.checked, mujer: g.length === 1 && g[0] === 'mujer', hombre: g.length === 1 && g[0] === 'hombre', ofertas: form.ofertas.checked };
+      document.querySelectorAll('[data-quick]').forEach((b) => b.setAttribute('aria-pressed', String(state[b.dataset.quick])));
+      titleEl.textContent = form.ofertas.checked ? 'Ofertas' : state.mujer ? 'Mujer' : state.hombre ? 'Hombre' : 'Catálogo';
+    }
 
     let firstPaint = true;
     function apply() {
-      const cats = [...form.querySelectorAll('[name=cat]:checked')].map((i) => Number(i.value));
-      const genders = [...form.querySelectorAll('[name=genero]:checked')].map((i) => i.value);
+      const cats = checked('cat').map((i) => Number(i.value));
+      const genders = checked('genero').map((i) => i.value);
       const max = Number(priceInput.value);
       document.getElementById('p-cur').textContent = money(max).replace('.00', '');
-
+      priceInput.style.setProperty('--pct', `${(max / Number(priceInput.max)) * 100}%`);
       let list = products.filter((p) =>
         (!form.ofertas.checked || p.sale_price != null) &&
         (!form.disponibles.checked || p.available) &&
@@ -135,11 +186,20 @@
         if (sort === 'descuento') return discountPct(b) - discountPct(a);
         return 0;
       });
-      count.textContent = `${list.length} producto${list.length === 1 ? '' : 's'}`;
+      count.innerHTML = `<strong>${list.length}</strong> producto${list.length === 1 ? '' : 's'}`;
       grid.innerHTML = list.length
         ? list.map((p) => productCard(p, { cta: false, reveal: firstPaint })).join('')
-        : '<div class="empty" style="grid-column:1/-1">No encontramos prendas con esos filtros. Prueba quitando alguno.</div>';
+        : `<div class="empty-state">
+             ${emblem(44)}
+             <h3>Sin resultados</h3>
+             <p>No encontramos prendas con esos filtros. Prueba quitando alguno.</p>
+             <button type="button" class="btn btn-gh btn-sm" data-clear="all">Limpiar filtros</button>
+           </div>`;
+      // Al filtrar, las tarjetas nuevas entran en una cascada corta
+      if (!firstPaint) grid.querySelectorAll('.card').forEach((c, i) => { c.classList.add('swap'); c.style.setProperty('--i', Math.min(i, 8)); });
       firstPaint = false;
+      renderActive(max);
+      syncQuick();
     }
 
     form.addEventListener('input', apply);
@@ -152,11 +212,41 @@
       on ? selectedSizes.add(b.dataset.size) : selectedSizes.delete(b.dataset.size);
       apply();
     });
+    function clearAll() {
+      form.reset();
+    }
     form.addEventListener('reset', () => {
       selectedSizes.clear();
       form.querySelectorAll('[data-size]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
       setTimeout(() => { priceInput.value = maxPrice; apply(); });
     });
+
+    // Quitar un filtro desde su píldora (o todos)
+    document.querySelector('.results').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-clear]');
+      if (!b) return;
+      const { clear: k, val: v } = b.dataset;
+      if (k === 'all') return clearAll();
+      if (k === 'ofertas' || k === 'disponibles') form[k].checked = false;
+      if (k === 'cat' || k === 'genero') form.querySelectorAll(`[name=${k}]`).forEach((i) => { if (i.value === v) i.checked = false; });
+      if (k === 'talla') { selectedSizes.delete(v); form.querySelector(`[data-size="${CSS.escape(v)}"]`)?.setAttribute('aria-pressed', 'false'); }
+      if (k === 'precio') priceInput.value = maxPrice;
+      apply();
+    });
+
+    // Accesos rápidos
+    document.querySelector('.quick').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-quick]');
+      if (!b) return;
+      const q = b.dataset.quick;
+      if (q === 'ofertas') form.ofertas.checked = !form.ofertas.checked;
+      else {
+        form.querySelectorAll('[name=genero]').forEach((i) => { i.checked = i.value === q; });
+        if (q === 'todo') form.ofertas.checked = false;
+      }
+      apply();
+    });
+
     apply();
   </script>
 </body>

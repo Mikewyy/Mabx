@@ -1,7 +1,19 @@
 // Utilidades compartidas por todas las páginas públicas de Mabx.
 
+// Emblema de la brújula Mabx: aro partido en cuatro arcos + estrella de cuatro puntas
+// con el eje vertical largo (igual que el logo de las camisetas).
+export const EMBLEM_PATHS = {
+  arcs: ['M37.7 21.1A14 14 0 0 0 26.9 10.3', 'M21.1 10.3A14 14 0 0 0 10.3 21.1', 'M10.3 26.9A14 14 0 0 0 21.1 37.7', 'M26.9 37.7A14 14 0 0 0 37.7 26.9'],
+  star: 'M24 1.5 26.1 21.9 34.5 24 26.1 26.1 24 46.5 21.9 26.1 13.5 24 21.9 21.9Z',
+};
+export function emblem(size = 26, cls = '') {
+  return `<svg${cls ? ` class="${cls}"` : ''} width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" aria-hidden="true">${EMBLEM_PATHS.arcs.map((d) => `<path class="em-arc" d="${d}" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" pathLength="1"/>`).join('')}<path class="em-star" d="${EMBLEM_PATHS.star}" fill="currentColor"/></svg>`;
+}
+
 export const ICONS = {
-  logo: (size = 26) => `<svg width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="currentColor" stroke-width="2.6"/><line x1="24" y1="2" x2="24" y2="13" stroke="currentColor" stroke-width="2.6"/><line x1="24" y1="35" x2="24" y2="46" stroke="currentColor" stroke-width="2.6"/><line x1="2" y1="24" x2="13" y2="24" stroke="currentColor" stroke-width="2.6"/><line x1="35" y1="24" x2="46" y2="24" stroke="currentColor" stroke-width="2.6"/><circle cx="24" cy="24" r="3.2" fill="currentColor"/></svg>`,
+  logo: (size = 26) => emblem(size),
+  arrow: (size = 18) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  check: (size = 20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   cart: (size = 20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 4h2l2.4 12.4a1 1 0 0 0 1 .8h8.2a1 1 0 0 0 1-.8L21 8H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.4" fill="currentColor"/><circle cx="18" cy="20" r="1.4" fill="currentColor"/></svg>`,
   menu: `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
   close: `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
@@ -50,8 +62,19 @@ export const cart = {
   count() { return cart.read().reduce((n, i) => n + i.qty, 0); },
 };
 
+let lastCount = null;
 function updateCartBadge() {
-  document.querySelectorAll('[data-cart-count]').forEach((el) => { el.textContent = cart.count(); });
+  const n = cart.count();
+  document.querySelectorAll('[data-cart-count]').forEach((el) => { el.textContent = n; });
+  // Pequeño "salto" del botón del carrito cuando se agrega algo
+  if (lastCount != null && n > lastCount) {
+    document.querySelectorAll('.cart-btn').forEach((b) => {
+      b.classList.remove('bump');
+      void b.offsetWidth; // reinicia la animación si se agrega varias veces seguidas
+      b.classList.add('bump');
+    });
+  }
+  lastCount = n;
 }
 
 // ---------- Mensaje de WhatsApp ----------
@@ -68,29 +91,40 @@ export const whatsappUrl = (number, text = '') => `https://wa.me/${String(number
 // ---------- Tarjeta de producto ----------
 // reveal: aparece con animación al hacer scroll (ver motion.js). Desactívalo en vistas que se
 // repintan a cada rato, como la vista previa del panel.
+// Toda la tarjeta es clicable: el enlace del título se estira sobre ella (ver .card h3 a::after).
 export function productCard(p, { compact = false, cta = true, reveal = true } = {}) {
   const tags = [];
-  if (p.sale_price != null) tags.push(`<span class="tag">-${discountPct(p)}%</span>`);
-  if (p.is_new) tags.push('<span class="tag alt">Nuevo</span>');
+  if (!p.available) tags.push('<span class="tag out">Agotado</span>');
+  if (!compact && p.sale_price != null) tags.push(`<span class="tag">-${discountPct(p)}%</span>`);
+  if (!compact && p.is_new) tags.push('<span class="tag alt">Nuevo</span>');
   const href = `/producto?id=${p.id}`;
   return `
     <article class="card${p.available ? '' : ' soldout'}${reveal ? ' reveal' : ''}">
-      <a class="pimg" href="${href}" tabindex="-1" aria-hidden="true">
+      <div class="pimg">
         <img src="${esc(productImg(p))}" alt="" loading="lazy">
-        ${p.available ? '' : '<span class="soldout-tag">Agotado</span>'}
-      </a>
+        ${tags.length ? `<div class="tags">${tags.join('')}</div>` : ''}
+      </div>
       <div class="body">
-        ${compact ? '' : `<div class="tags">${tags.join('')}</div>`}
         <h3><a href="${href}">${esc(p.name)}</a></h3>
-        <div><span class="price"${p.available ? '' : ' style="color:var(--mut)"'}>${money(finalPrice(p))}</span>${p.sale_price != null ? `<span class="old">${money(p.price)}</span>` : ''}</div>
-        ${cta ? `<a href="${href}" class="btn btn-gh card-cta">Ver producto</a>` : ''}
+        <div class="pline">
+          <span class="price">${money(finalPrice(p))}</span>${p.sale_price != null ? `<span class="old">${money(p.price)}</span>` : ''}
+          ${cta ? `<span class="go" aria-hidden="true">${ICONS.arrow(16)}</span>` : ''}
+        </div>
       </div>
     </article>`;
 }
 
 // ---------- Encabezado y pie de página ----------
 export function renderChrome(active) {
+  document.body.dataset.page = active;
   const header = document.querySelector('[data-header]');
+  // Enlace "Saltar al contenido": lo primero que alcanza el teclado
+  const main = document.querySelector('main');
+  if (header && main) {
+    main.id ||= 'contenido';
+    main.tabIndex = -1;
+    header.insertAdjacentHTML('beforebegin', `<a class="skip-link" href="#${main.id}">Saltar al contenido</a>`);
+  }
   if (header) {
     const link = (href, label, key) => `<a class="navlink" href="${href}"${key === active ? ' aria-current="page"' : ''}>${label}</a>`;
     header.outerHTML = `
@@ -104,9 +138,14 @@ export function renderChrome(active) {
             ${link('/catalogo?ofertas=1', 'Ofertas', 'ofertas')}
             ${link('#contacto', 'Contacto', 'contacto')}
           </nav>
-          <a href="/carrito" class="btn btn-gh cart-btn" aria-label="Ver carrito">${ICONS.cart()}<span class="cart-count" data-cart-count>0</span></a>
+          <a href="/carrito" class="cart-btn" aria-label="Ver carrito">${ICONS.cart()}<span class="cart-count" data-cart-count>0</span></a>
         </div>
       </header>`;
+    // El encabezado se vuelve sólido apenas la página baja un poco
+    const siteHeader = document.querySelector('.site-header');
+    const onScroll = () => siteHeader.classList.toggle('scrolled', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
     const btn = document.querySelector('.menu-btn');
     const nav = document.getElementById('main-nav');
     btn.addEventListener('click', () => {
@@ -115,7 +154,10 @@ export function renderChrome(active) {
       btn.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
       btn.innerHTML = open ? ICONS.close : ICONS.menu;
     });
-    nav.addEventListener('click', (e) => { if (e.target.closest('a')) { nav.classList.remove('open'); btn.innerHTML = ICONS.menu; btn.setAttribute('aria-expanded', 'false'); } });
+    const closeMenu = () => { nav.classList.remove('open'); btn.innerHTML = ICONS.menu; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Abrir menú'); };
+    nav.addEventListener('click', (e) => { if (e.target.closest('a')) closeMenu(); });
+    // Escape cierra el menú del celular y devuelve el foco al botón
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('open')) { closeMenu(); btn.focus(); } });
   }
 
   const footer = document.querySelector('[data-footer]');
@@ -124,21 +166,22 @@ export function renderChrome(active) {
       <footer class="site-footer" id="contacto">
         <div class="wrap cols">
           <div class="reveal">
-            <div class="logo" style="margin-bottom:16px">${ICONS.logo(24)}<span style="font-size:24px">MABX</span></div>
-            <p class="muted" style="font-size:14px;line-height:1.6;max-width:280px;margin:0">Nacidos para superarnos. Ropa deportiva desde Portoviejo, Ecuador.</p>
+            <div class="logo">${ICONS.logo(26)}<span>MABX</span></div>
+            <p class="foot-claim">Nacidos para superarnos. Ropa deportiva desde Portoviejo, Ecuador.</p>
           </div>
           <div class="reveal">
-            <h3>Tienda</h3>
+            <h2>Tienda</h2>
             <div class="links"><a href="/catalogo">Catálogo</a><a href="/catalogo?ofertas=1">Ofertas</a><a href="/carrito">Carrito</a></div>
           </div>
           <div class="reveal">
-            <h3>Contacto</h3>
+            <h2>Contacto</h2>
             <div class="links" data-contact>
-              <a class="btn btn-ac btn-sm" data-wa-link href="#" target="_blank" rel="noopener" style="width:fit-content;color:#0A0A0A">${ICONS.whatsapp()} WhatsApp</a>
+              <a class="btn btn-wa btn-sm" data-wa-link href="#" target="_blank" rel="noopener">${ICONS.whatsapp()} Escríbenos por WhatsApp</a>
             </div>
           </div>
         </div>
-        <div class="copy"><div class="wrap">© ${new Date().getFullYear()} Mabx · Nacidos para superarnos</div></div>
+        <div class="foot-mark" aria-hidden="true"><span>MABX</span></div>
+        <div class="copy"><div class="wrap"><span>© ${new Date().getFullYear()} Mabx</span><span>Nacidos para superarnos</span></div></div>
       </footer>`;
     getCatalog().then(({ settings: s }) => {
       document.querySelectorAll('[data-wa-link]').forEach((a) => { a.href = whatsappUrl(s.whatsapp_number, '¡Hola Mabx! Tengo una consulta.'); });

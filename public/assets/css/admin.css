@@ -114,3 +114,17 @@ label.f, .flbl { display: block; font-size: 13px; color: var(--mut); margin: 0 0
   .two { grid-template-columns: 1fr; }
   .stats .lbl { font-size: 12px; }
 }
+
+/* Zonas táctiles de 44px en celular y tablet */
+@media (max-width: 900px) {
+  .snav { min-height: 44px; }
+  .iact { width: 44px; height: 44px; }
+  .pill button { min-width: 44px; min-height: 44px; }
+  .photo .rm::after, .switch::after, button.badge::after { content: ''; position: absolute; inset: -9px; }
+  .switch::after { inset: -7px -4px; }
+  button.badge { position: relative; }
+  button.badge::after { inset: -11px -4px; }
+  .sidebar .logo { padding: 10px; margin: -10px 0 -10px -10px; }
+  .admin-crumbs a { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; }
+  .input, .admin input[type=text], .admin input[type=number], .admin input[type=email], .admin input[type=password], .admin input[type=tel], .admin input[type=url], .admin select, .login input[type=email], .login input[type=password] { min-height: 44px; }
+}

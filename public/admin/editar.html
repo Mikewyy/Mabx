@@ -8,7 +8,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/styles.css">
   <script src="/assets/js/motion.js"></script>
   <link rel="stylesheet" href="/assets/css/admin.css">
@@ -33,7 +33,7 @@
           <div class="panel dropzone reveal reveal-fade" id="dropzone">
             <span class="flbl" id="photos-lbl">Fotos del producto</span>
             <div class="photos" id="photos" aria-labelledby="photos-lbl"></div>
-            <input type="file" id="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.jfif,.png,.webp" multiple hidden>
+            <input type="file" id="file" aria-label="Elegir fotos del producto" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.jfif,.png,.webp" multiple hidden>
             <p class="help" id="photo-help" style="margin:0">Arrastra una o varias imágenes a este recuadro o pulsa “+” para elegirlas desde tu computador. La primera foto es la portada. JPG, PNG o WEBP, máx. 5 MB cada una, hasta 10 fotos.</p>
           </div>
 
@@ -82,7 +82,7 @@
         </form>
 
         <aside class="reveal reveal-fade" style="flex:1 1 300px;min-width:260px;max-width:340px;position:sticky;top:24px">
-          <p class="secttl" style="margin-bottom:14px">Vista previa</p>
+          <p class="secttl" role="heading" aria-level="2" style="margin-bottom:14px">Vista previa</p>
           <div id="preview"></div>
         </aside>
       </div>

@@ -39,7 +39,7 @@ export function renderSidebar(active) {
   const link = (href, key, icon, label) => `<a href="${href}" class="snav"${key === active ? ' aria-current="page"' : ''}>${icon} ${label}</a>`;
   el.outerHTML = `
     <aside class="sidebar">
-      <a href="/" class="logo" title="Ver la tienda">${ICONS.logo(24)}<span>MABX</span></a>
+      <a href="/" class="logo" title="Ver la tienda" aria-label="Mabx, ver la tienda">${ICONS.logo(24)}<span>MABX</span></a>
       <nav class="snav-list" aria-label="Panel">
         ${link('/admin/productos', 'productos', AICONS.products, 'Productos')}
         ${link('/admin/config#ofertas', 'ofertas', AICONS.offers, 'Ofertas')}
