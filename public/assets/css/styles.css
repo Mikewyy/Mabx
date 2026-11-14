@@ -103,7 +103,8 @@ body[data-page="inicio"] .site-header:not(.scrolled):not(:has(.main-nav.open)) {
 .menu-btn { display: none; background: none; border: 0; color: var(--tx); width: 44px; height: 44px; align-items: center; justify-content: center; cursor: pointer; margin-left: -10px; border-radius: 10px; }
 
 /* ---------- Hero (inicio) ---------- */
-.hero { position: relative; isolation: isolate; overflow: hidden; background: var(--bg); margin-top: calc(var(--hh) * -1); padding-top: var(--hh); min-height: clamp(640px, 100svh, 940px); display: flex; }
+.hero { position: relative; isolation: isolate; overflow: hidden; background: var(--bg); margin-top: calc(var(--hh) * -1); padding-top: var(--hh); min-height: clamp(500px, calc(100vh - 96px), 940px); min-height: clamp(500px, calc(100svh - 96px), 940px); display: flex; }
+/* El hero mide la pantalla menos 96px: así la barra de beneficios (que se monta 64px sobre él) entra completa en la primera vista */
 .hero-bg { position: absolute; z-index: -3; top: 0; right: 0; bottom: 0; width: min(70%, 1180px); }
 .hero-bg img { width: 100%; height: 100%; object-fit: cover; object-position: 12% 35%; filter: contrast(1.06) saturate(.92); }
 /* Sombras que funden la foto con el negro: izquierda (texto), derecha, arriba (menú) y abajo */
@@ -121,18 +122,19 @@ body[data-page="inicio"] .site-header:not(.scrolled):not(:has(.main-nav.open)) {
 .hero-emblem .em-star { fill: none; stroke: currentColor; stroke-width: .14; opacity: .26; transform-origin: 24px 24px; }
 .hero-emblem .em-dot { fill: currentColor; }
 /* Diagonales neón que retoman las franjas del banner */
-.hero-slash { position: absolute; z-index: -1; right: clamp(20px, 6vw, 96px); bottom: 132px; display: flex; gap: 12px; pointer-events: none; }
+.hero-slash { position: absolute; z-index: -1; right: clamp(20px, 6vw, 96px); bottom: clamp(84px, 14vh, 132px); display: flex; gap: 12px; pointer-events: none; }
 .hero-slash i { display: block; width: 10px; height: 92px; background: var(--ac); transform: skewX(-32deg); border-radius: 2px; }
 .hero-slash i:nth-child(2) { background: rgba(255, 255, 255, .22); height: 70px; margin-top: 22px; }
 .hero-slash i:nth-child(3) { background: rgba(255, 255, 255, .1); height: 48px; margin-top: 44px; }
 
-.hero-inner { position: relative; width: 100%; display: flex; flex-direction: column; justify-content: center; padding-top: 48px; padding-bottom: 0; }
-.hero-copy { max-width: 760px; padding-bottom: 136px; }
-.hero h1 { font-size: clamp(64px, 9.6vw, 156px); font-weight: 800; line-height: .86; letter-spacing: -.005em; margin: 0 0 28px; text-wrap: initial; }
+.hero-inner { position: relative; width: 100%; display: flex; flex-direction: column; justify-content: center; padding-top: clamp(0px, 3vh, 48px); padding-bottom: 0; }
+.hero-copy { max-width: 760px; padding-bottom: clamp(80px, 13vh, 136px); }
+/* El titular crece con el ancho pero también se limita por el alto, para que en laptops no empuje los botones fuera de pantalla */
+.hero h1 { font-size: clamp(56px, min(9.6vw, 11.5vh), 156px); font-weight: 800; line-height: .86; letter-spacing: -.005em; margin: 0 0 clamp(16px, 3vh, 28px); text-wrap: initial; }
 .hero h1 .l { display: block; overflow: hidden; padding: .03em 0 .02em; margin: -.03em 0 -.02em; }
 .hero h1 .l > span { display: block; }
 .hero h1 em, .hero h1 .ac { color: var(--ac); font-style: normal; }
-.hero p.lead { color: #C9C9CC; font-size: 18px; line-height: 1.6; max-width: 440px; margin: 0 0 34px; }
+.hero p.lead { color: #C9C9CC; font-size: 18px; line-height: 1.6; max-width: 440px; margin: 0 0 clamp(20px, 4vh, 34px); }
 .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 
 /* ---------- Beneficios: barra flotante sobre el borde del hero ---------- */
@@ -574,6 +576,20 @@ body[data-page="inicio"] .site-header:not(.scrolled):not(:has(.main-nav.open)) {
   .main-img.zooming img { transform: scale(1.5); }
   .main-img.zooming .corner { transform: none; }
   .card, .btn, .cat-tile { transition-property: border-color, box-shadow, background-color, color; }
+}
+
+/* =================== Laptops de poca altura (p. ej. 1366×657 con barras del navegador) =================== */
+/* Compacta un poco el hero y la barra de beneficios para que la primera vista entre completa */
+@media (min-width: 861px) and (max-height: 720px) {
+  .hero .eyebrow { margin-bottom: 10px; }
+  .hero p.lead { font-size: 17px; line-height: 1.55; }
+  .perks-bar li { padding-block: 18px; }
+}
+
+/* Tablet horizontal: la barra de beneficios en 3 columnas necesita menos relleno */
+@media (min-width: 861px) and (max-width: 1100px) {
+  .perks-bar li { padding-inline: 20px; gap: 12px; }
+  .perks-bar strong { font-size: 19px; }
 }
 
 /* =================== Adaptación a tablet y celular =================== */
