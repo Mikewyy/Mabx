@@ -32,6 +32,11 @@
         <div class="stat reveal reveal-fade"><p class="lbl">Agotados</p><p class="val" id="st-out">–</p></div>
       </div>
 
+      <div class="alert optimize" id="optimize" role="status" hidden>
+        <div><strong>Hay <span id="opt-n">0</span> fotos sin optimizar.</strong> Conviértelas a WEBP para que pesen menos y la tienda cargue más rápido. No cambia cómo se ven.</div>
+        <button type="button" class="btn btn-ac btn-sm" id="opt-btn">Optimizar fotos</button>
+      </div>
+
       <div class="table-wrap reveal reveal-fade">
         <div class="table-tools">
           <label class="sr-only" for="q">Buscar producto</label>
@@ -52,7 +57,7 @@
   </div>
 
   <script type="module">
-    import { api, requireAdmin, renderSidebar, toast, esc, AICONS } from '/assets/js/admin.js';
+    import { api, requireAdmin, renderSidebar, toast, esc, AICONS, uploadPhoto } from '/assets/js/admin.js';
     import { money, finalPrice, productImg } from '/assets/js/common.js';
     await requireAdmin();
     renderSidebar('productos');
@@ -67,6 +72,7 @@
       products = data.products;
       catNames = new Map(data.categories.map((c) => [c.id, c.name]));
       render();
+      checkOptimize();
     }
 
     function sizeRange(sizes) {
@@ -88,20 +94,22 @@
       rows.innerHTML = list.map((p) => {
         const off = !p.available;
         const status = off ? '<span class="badge off">Agotado</span>' : p.sale_price != null ? '<span class="badge ok">En oferta</span>' : '<span class="badge ok">Disponible</span>';
-        return `<tr>
-          <td><div style="display:flex;align-items:center;gap:14px">
-            <div class="tdimg"${off ? ' style="opacity:.5"' : ''}><img src="${esc(productImg(p))}" alt=""></div>
-            <div><p style="font-weight:600;margin:0 0 2px${off ? ';color:var(--mut)' : ''}">${esc(p.name)}${p.featured ? ' <span class="accent" title="Destacado en el inicio">★</span>' : ''}</p>
-            <p class="muted" style="font-size:12px;margin:0">${esc(sizeRange(p.sizes))}</p></div>
-          </div></td>
-          <td class="muted" style="font-size:14px">${esc(catNames.get(p.category_id) || '—')}</td>
-          <td><span style="font-weight:700${off ? ';color:var(--mut)' : ''}">${money(finalPrice(p))}</span>${p.sale_price != null ? ` <span class="muted" style="text-decoration:line-through;font-size:13px">${money(p.price)}</span>` : ''}</td>
-          <td>${status}</td>
-          <td style="text-align:right"><div class="actions">
-            <a class="iact" href="/admin/editar?id=${p.id}" aria-label="Editar ${esc(p.name)}" title="Editar">${AICONS.edit}</a>
-            <button class="iact" data-act="feat" data-id="${p.id}" aria-label="${p.featured ? 'Quitar de destacados' : 'Destacar en el inicio'}" title="${p.featured ? 'Quitar de destacados' : 'Destacar en el inicio'}" ${p.featured ? 'style="color:var(--ac)"' : ''}>${AICONS.star(p.featured)}</button>
-            <button class="iact" data-act="avail" data-id="${p.id}" aria-label="${off ? 'Marcar disponible' : 'Marcar agotado'}" title="${off ? 'Marcar disponible' : 'Marcar agotado'}">${off ? AICONS.restore : AICONS.ban}</button>
-            <button class="iact danger" data-act="del" data-id="${p.id}" aria-label="Eliminar ${esc(p.name)}" title="Eliminar">${AICONS.trash}</button>
+        const featLbl = p.featured ? 'Quitar de destacados' : 'Destacar';
+        const availLbl = off ? 'Marcar disponible' : 'Marcar agotado';
+        return `<tr${off ? ' class="is-off"' : ''}>
+          <td class="c-prod"><a class="prod" href="/admin/editar?id=${p.id}">
+            <div class="tdimg"><img src="${esc(productImg(p))}" alt=""></div>
+            <div><p class="pname">${esc(p.name)}${p.featured ? ' <span class="accent" title="Destacado en el inicio">★</span>' : ''}</p>
+            <p class="muted psub">${esc(sizeRange(p.sizes))}<span class="m-cat"> · ${esc(catNames.get(p.category_id) || 'Sin categoría')}</span></p></div>
+          </a></td>
+          <td class="c-cat muted">${esc(catNames.get(p.category_id) || '—')}</td>
+          <td class="c-price"><span class="pprice">${money(finalPrice(p))}</span>${p.sale_price != null ? ` <span class="muted pold">${money(p.price)}</span>` : ''}</td>
+          <td class="c-status">${status}</td>
+          <td class="c-act"><div class="actions">
+            <a class="iact wide" href="/admin/editar?id=${p.id}">${AICONS.edit}<span>Editar</span></a>
+            <button class="iact" data-act="feat" data-id="${p.id}" aria-label="${featLbl}: ${esc(p.name)}" title="${featLbl}" ${p.featured ? 'style="color:var(--ac)"' : ''}>${AICONS.star(p.featured)}<span class="m-lbl">${p.featured ? 'No destacar' : 'Destacar'}</span></button>
+            <button class="iact" data-act="avail" data-id="${p.id}" aria-label="${availLbl}: ${esc(p.name)}" title="${availLbl}">${off ? AICONS.restore : AICONS.ban}<span class="m-lbl">${off ? 'Disponible' : 'Agotado'}</span></button>
+            <button class="iact danger" data-act="del" data-id="${p.id}" aria-label="Eliminar ${esc(p.name)}" title="Eliminar">${AICONS.trash}<span class="m-lbl">Eliminar</span></button>
           </div></td>
         </tr>`;
       }).join('');
@@ -129,6 +137,40 @@
       } catch (ex) { toast(ex.message); b.disabled = false; }
     });
     q.addEventListener('input', render);
+
+    // ---- Fotos subidas antes de la conversión automática a WEBP ----
+    const needsWebp = (u) => u.startsWith('/media/') && !/\.webp$/i.test(u);
+    const optBox = document.getElementById('optimize');
+    const optBtn = document.getElementById('opt-btn');
+    function checkOptimize() {
+      const n = products.reduce((t, p) => t + p.images.filter(needsWebp).length, 0);
+      document.getElementById('opt-n').textContent = n;
+      optBox.hidden = n === 0;
+    }
+    optBtn.addEventListener('click', async () => {
+      optBtn.disabled = true;
+      let done = 0, failed = 0;
+      const total = Number(document.getElementById('opt-n').textContent);
+      for (const p of products) {
+        if (!p.images.some(needsWebp)) continue;
+        const images = [];
+        for (const u of p.images) {
+          if (!needsWebp(u)) { images.push(u); continue; }
+          optBtn.textContent = `Optimizando ${done + failed + 1} de ${total}…`;
+          try {
+            const blob = await fetch(u).then((r) => { if (!r.ok) throw new Error(); return r.blob(); });
+            images.push(await uploadPhoto(blob, u.split('/').pop()));
+            done++;
+          } catch { images.push(u); failed++; }
+        }
+        // Al guardar con las fotos nuevas, el servidor borra las originales que ya no se usan
+        try { Object.assign(p, await api(`/api/admin/products/${p.id}`, { method: 'PUT', body: { ...p, images } })); }
+        catch (ex) { toast(`${p.name}: ${ex.message}`); }
+      }
+      optBtn.disabled = false; optBtn.textContent = 'Optimizar fotos';
+      toast(failed ? `${done} fotos optimizadas, ${failed} no se pudieron convertir` : `Listo: ${done} fotos optimizadas`);
+      render(); checkOptimize();
+    });
     load().catch((ex) => { rows.innerHTML = `<tr><td colspan="5" class="muted">${esc(ex.message)}</td></tr>`; });
   </script>
 </body>

@@ -34,7 +34,7 @@
             <span class="flbl" id="photos-lbl">Fotos del producto</span>
             <div class="photos" id="photos" aria-labelledby="photos-lbl"></div>
             <input type="file" id="file" aria-label="Elegir fotos del producto" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.jfif,.png,.webp" multiple hidden>
-            <p class="help" id="photo-help" style="margin:0">Arrastra una o varias imágenes a este recuadro o pulsa “+” para elegirlas desde tu computador. La primera foto es la portada. JPG, PNG o WEBP, máx. 5 MB cada una, hasta 10 fotos.</p>
+            <p class="help" id="photo-help" style="margin:0">Arrastra una o varias imágenes a este recuadro o pulsa “+” para elegirlas desde tu computador. La primera foto es la portada; toca “Hacer portada” en otra para cambiarla. JPG, PNG o WEBP, hasta 10 fotos. Se convierten solas a WEBP y se achican para que carguen rápido.</p>
           </div>
 
           <div class="panel reveal reveal-fade">
@@ -55,7 +55,7 @@
 
           <div class="panel reveal reveal-fade">
             <div class="two">
-              <div><label class="f" for="price">Precio ($)</label><input id="price" name="price" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="25.90"></div>
+              <div><label class="f" for="price">Precio ($)</label><input id="price" name="price" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="Ej. 25.90"></div>
               <div><label class="f" for="sale_price">Precio de oferta ($)</label><input id="sale_price" name="sale_price" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Opcional"></div>
             </div>
             <p class="help">Deja vacío el precio de oferta si no hay descuento. Si lo llenas, se mostrará la etiqueta “-X%”.</p>
@@ -75,7 +75,7 @@
             </div>
           </div>
 
-          <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <div class="save-bar">
             <button type="submit" class="btn btn-ac btn-lg" id="save">Guardar producto</button>
             <a href="/admin/productos" class="btn btn-gh btn-lg">Cancelar</a>
           </div>
@@ -90,14 +90,14 @@
   </div>
 
   <script type="module">
-    import { api, requireAdmin, renderSidebar, toast, esc, AICONS } from '/assets/js/admin.js';
+    import { api, requireAdmin, renderSidebar, toast, esc, AICONS, uploadPhoto } from '/assets/js/admin.js';
     import { productCard } from '/assets/js/common.js';
     await requireAdmin();
     renderSidebar('productos');
 
     const DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
     const MAX_PHOTOS = 10;
-    const MAX_BYTES = 5 * 1024 * 1024;
+    const MAX_BYTES = 30 * 1024 * 1024; // foto original; al convertirla a WEBP queda mucho más liviana
     const id = Number(new URLSearchParams(location.search).get('id')) || null;
     const form = document.getElementById('form');
     const err = document.getElementById('err');
@@ -107,6 +107,7 @@
     let sizes = new Set(['S', 'M', 'L']);
     let sizeOptions = [...DEFAULT_SIZES];
     let uploading = 0;
+    let dirty = false; // hay cambios sin guardar
 
     const data = await api('/api/admin/catalog');
     form.category_id.insertAdjacentHTML('beforeend', data.categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join(''));
@@ -141,7 +142,7 @@
       photosEl.innerHTML = images.map((src, i) => `
         <div class="photo">
           <img src="${esc(src)}" alt="Foto ${i + 1}">
-          ${i === 0 ? '<span class="first">Portada</span>' : ''}
+          ${i === 0 ? '<span class="first">Portada</span>' : `<button type="button" class="cover" data-cover="${i}" aria-label="Usar foto ${i + 1} como portada" title="Usar como portada">Hacer portada</button>`}
           <button type="button" class="rm" data-rm="${i}" aria-label="Quitar foto ${i + 1}">${AICONS.x}</button>
         </div>`).join('') +
         '<div class="photo pending" role="status" aria-label="Subiendo foto…"></div>'.repeat(uploading) +
@@ -187,7 +188,7 @@
       if (notImg.length) problems.push(`${notImg.map((f) => f.name).join(', ')}: solo JPG, PNG o WEBP`);
       list = list.filter(isImage);
       const big = list.filter((f) => f.size > MAX_BYTES);
-      if (big.length) problems.push(`${big.map((f) => f.name).join(', ')}: pesa más de 5 MB`);
+      if (big.length) problems.push(`${big.map((f) => f.name).join(', ')}: pesa más de 30 MB`);
       list = list.filter((f) => f.size <= MAX_BYTES);
       const room = MAX_PHOTOS - images.length - uploading;
       if (list.length > room) problems.push(`Máximo ${MAX_PHOTOS} fotos por producto`);
@@ -199,14 +200,12 @@
       // Se suben todas a la vez y se agregan en el mismo orden en que se eligieron
       const urls = await Promise.all(list.map(async (file) => {
         try {
-          const fd = new FormData();
-          fd.append('file', file);
-          const { url } = await api('/api/admin/upload', { method: 'POST', form: fd });
-          return url;
+          return await uploadPhoto(file, file.name);
         } catch (ex) { toast(`${file.name}: ${ex.message}`); return null; }
       }));
       uploading -= list.length;
       images.push(...urls.filter(Boolean));
+      dirty = true;
       refresh();
     }
 
@@ -214,6 +213,7 @@
       const b = e.target.closest('[data-size]');
       if (!b) return;
       sizes.has(b.dataset.size) ? sizes.delete(b.dataset.size) : sizes.add(b.dataset.size);
+      dirty = true;
       refresh();
     });
     document.getElementById('add-size').addEventListener('click', () => {
@@ -221,12 +221,14 @@
       const s = input.value.trim().toUpperCase();
       if (!s) return;
       if (!sizeOptions.includes(s)) sizeOptions.push(s);
-      sizes.add(s); input.value = ''; refresh();
+      sizes.add(s); input.value = ''; dirty = true; refresh();
     });
     photosEl.addEventListener('click', (e) => {
       if (e.target.closest('#add-photo')) fileInput.click();
       const rm = e.target.closest('[data-rm]');
-      if (rm) { images.splice(Number(rm.dataset.rm), 1); refresh(); }
+      if (rm) { images.splice(Number(rm.dataset.rm), 1); dirty = true; refresh(); }
+      const cv = e.target.closest('[data-cover]');
+      if (cv) { images.unshift(...images.splice(Number(cv.dataset.cover), 1)); dirty = true; refresh(); toast('Portada cambiada'); }
     });
     fileInput.addEventListener('change', () => { upload(fileInput.files); fileInput.value = ''; });
     const dz = document.getElementById('dropzone');
@@ -244,7 +246,9 @@
     // Si sueltan la imagen fuera del recuadro, el navegador no debe abrirla (se perdería el formulario)
     window.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
     window.addEventListener('drop', (e) => { if (hasFiles(e)) { e.preventDefault(); toast('Suelta las fotos dentro del recuadro “Fotos del producto”'); } });
-    form.addEventListener('input', renderPreview);
+    form.addEventListener('input', () => { dirty = true; renderPreview(); });
+    // Avisa antes de salir si hay cambios sin guardar
+    window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -254,6 +258,7 @@
       btn.disabled = true; btn.textContent = 'Guardando…';
       try {
         await api(id ? `/api/admin/products/${id}` : '/api/admin/products', { method: id ? 'PUT' : 'POST', body: values() });
+        dirty = false;
         location.href = '/admin/productos';
       } catch (ex) {
         err.textContent = ex.message; err.hidden = false;
