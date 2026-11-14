@@ -100,7 +100,7 @@
           <td class="c-prod"><a class="prod" href="/admin/editar?id=${p.id}">
             <div class="tdimg"><img src="${esc(productImg(p))}" alt=""></div>
             <div><p class="pname">${esc(p.name)}${p.featured ? ' <span class="accent" title="Destacado en el inicio">★</span>' : ''}</p>
-            <p class="muted psub">${esc(sizeRange(p.sizes))}<span class="m-cat"> · ${esc(catNames.get(p.category_id) || 'Sin categoría')}</span></p></div>
+            <p class="muted psub">${esc(sizeRange(p.sizes))}${p.sold_out_sizes?.length ? ` · <span class="out-sizes">${esc(p.sold_out_sizes.join(', '))} agotada${p.sold_out_sizes.length > 1 ? 's' : ''}</span>` : ''}<span class="m-cat"> · ${esc(catNames.get(p.category_id) || 'Sin categoría')}</span></p></div>
           </a></td>
           <td class="c-cat muted">${esc(catNames.get(p.category_id) || '—')}</td>
           <td class="c-price"><span class="pprice">${money(finalPrice(p))}</span>${p.sale_price != null ? ` <span class="muted pold">${money(p.price)}</span>` : ''}</td>

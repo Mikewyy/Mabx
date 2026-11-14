@@ -83,11 +83,18 @@ async function getCatalog(env, includeAll) {
     if (includeAll || PUBLIC_SETTINGS.includes(row.key)) settingsObj[row.key] = row.value;
   }
   return {
-    products: products.results.map(formatProduct),
+    products: products.results.map(formatProduct).map((p) => (includeAll ? p : withStock(p))),
     categories: categories.results,
     promotions: promotions.results.map((p) => ({ ...p, active: !!p.active })),
     settings: settingsObj,
   };
+}
+
+// En la tienda, un producto con todas sus tallas agotadas se muestra como agotado.
+// (El panel recibe los datos tal cual, para no mezclar el interruptor "Disponible" con las tallas.)
+function withStock(p) {
+  const hasStock = !p.sizes.length || p.sizes.some((s) => !p.sold_out_sizes.includes(s));
+  return hasStock ? p : { ...p, available: false };
 }
 
 function formatProduct(row) {
@@ -100,6 +107,7 @@ function formatProduct(row) {
     price: row.price_cents / 100,
     sale_price: row.sale_cents == null ? null : row.sale_cents / 100,
     sizes: safeJson(row.sizes, []),
+    sold_out_sizes: safeJson(row.sold_out_sizes, []),
     images: safeJson(row.images, []),
     available: !!row.available,
     featured: !!row.featured,
@@ -118,25 +126,27 @@ async function saveProduct(env, id, body) {
   const gender = GENDERS.includes(body.gender) ? body.gender : 'unisex';
   const sizes = Array.isArray(body.sizes) ? body.sizes.map((s) => str(s, 10)).filter(Boolean).slice(0, 20) : [];
   const images = Array.isArray(body.images) ? body.images.filter(isImageUrl).slice(0, 10) : [];
+  // Solo se guardan como agotadas tallas que el producto realmente tiene
+  const soldOut = Array.isArray(body.sold_out_sizes) ? [...new Set(body.sold_out_sizes.map((s) => str(s, 10)))].filter((s) => sizes.includes(s)) : [];
   const categoryId = body.category_id ? toId(body.category_id) : null;
 
   const values = [
     name, str(body.description, 2000), categoryId, gender, price, sale,
-    JSON.stringify(sizes), JSON.stringify(images),
+    JSON.stringify(sizes), JSON.stringify(soldOut), JSON.stringify(images),
     body.available === false ? 0 : 1, body.featured ? 1 : 0, body.is_new ? 1 : 0,
   ];
 
   if (id == null) {
     const res = await env.DB.prepare(
-      `INSERT INTO products (name, description, category_id, gender, price_cents, sale_cents, sizes, images, available, featured, is_new)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
+      `INSERT INTO products (name, description, category_id, gender, price_cents, sale_cents, sizes, sold_out_sizes, images, available, featured, is_new)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
     ).bind(...values).first();
     return formatProduct(res);
   }
   const old = await env.DB.prepare('SELECT images FROM products WHERE id = ?').bind(id).first();
   const res = await env.DB.prepare(
     `UPDATE products SET name = ?, description = ?, category_id = ?, gender = ?, price_cents = ?, sale_cents = ?,
-       sizes = ?, images = ?, available = ?, featured = ?, is_new = ?, updated_at = datetime('now')
+       sizes = ?, sold_out_sizes = ?, images = ?, available = ?, featured = ?, is_new = ?, updated_at = datetime('now')
      WHERE id = ? RETURNING *`
   ).bind(...values, id).first();
   if (!res) throw new HttpError(404, 'Producto no encontrado');

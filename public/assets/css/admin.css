@@ -189,3 +189,10 @@ label.f, .flbl { display: block; font-size: 13px; color: var(--mut); margin: 0 0
   .save-bar .btn { flex: 1; height: 50px; padding: 0 16px; }
   .photo .cover::after { content: ''; position: absolute; inset: -10px -6px; }
 }
+
+/* Tallas agotadas */
+.soldout-box { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--bd); }
+.soldout-box[hidden] { display: none; }
+.soldout-chip[aria-pressed="true"] { background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .45); color: #FCA5A5; text-decoration: line-through; }
+.help.warn { color: #FCA5A5; }
+.out-sizes { color: #FCA5A5; }

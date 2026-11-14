@@ -46,6 +46,11 @@
                 <input id="custom-size" type="text" maxlength="10" placeholder="Otra talla (ej. 38, Única)" style="max-width:220px">
                 <button type="button" class="btn btn-gh btn-sm" id="add-size">Añadir talla</button>
               </div>
+              <div class="soldout-box" id="soldout-box">
+                <span class="flbl" id="soldout-lbl">¿Alguna talla agotada? Tócala para marcarla</span>
+                <div class="chips" id="soldout" role="group" aria-labelledby="soldout-lbl"></div>
+                <p class="help" id="soldout-help">Las tallas agotadas se ven tachadas en la tienda y no se pueden pedir.</p>
+              </div>
             </div>
             <div class="two">
               <div><label class="f" for="category_id">Categoría</label><select id="category_id" name="category_id"><option value="">Sin categoría</option></select></div>
@@ -105,6 +110,7 @@
     const fileInput = document.getElementById('file');
     let images = [];
     let sizes = new Set(['S', 'M', 'L']);
+    let soldOut = new Set();
     let sizeOptions = [...DEFAULT_SIZES];
     let uploading = 0;
     let dirty = false; // hay cambios sin guardar
@@ -129,6 +135,7 @@
       form.is_new.checked = p.is_new;
       images = [...p.images];
       sizes = new Set(p.sizes);
+      soldOut = new Set(p.sold_out_sizes || []);
       for (const s of p.sizes) if (!sizeOptions.includes(s)) sizeOptions.push(s);
     } else if (data.categories[0]) {
       form.category_id.value = data.categories[0].id;
@@ -137,6 +144,19 @@
     function renderSizes() {
       document.getElementById('sizes').innerHTML = sizeOptions
         .map((s) => `<button type="button" class="chip" data-size="${esc(s)}" aria-pressed="${sizes.has(s)}">${esc(s)}</button>`).join('');
+    }
+    function renderSoldOut() {
+      const list = sizeOptions.filter((s) => sizes.has(s));
+      for (const s of [...soldOut]) if (!sizes.has(s)) soldOut.delete(s);
+      document.getElementById('soldout-box').hidden = !list.length;
+      document.getElementById('soldout').innerHTML = list
+        .map((s) => `<button type="button" class="chip soldout-chip" data-out="${esc(s)}" aria-pressed="${soldOut.has(s)}">${esc(s)}${soldOut.has(s) ? ' · agotada' : ''}</button>`).join('');
+      const all = list.length && list.every((s) => soldOut.has(s));
+      const help = document.getElementById('soldout-help');
+      help.textContent = all
+        ? 'Todas las tallas están agotadas: la tienda mostrará el producto como “Agotado”.'
+        : 'Las tallas agotadas se ven tachadas en la tienda y no se pueden pedir.';
+      help.classList.toggle('warn', !!all);
     }
     function renderPhotos() {
       photosEl.innerHTML = images.map((src, i) => `
@@ -159,6 +179,7 @@
         price: form.price.value,
         sale_price: form.sale_price.value,
         sizes: sizeOptions.filter((s) => sizes.has(s)),
+        sold_out_sizes: sizeOptions.filter((s) => sizes.has(s) && soldOut.has(s)),
         images,
         available: form.available.checked,
         featured: form.featured.checked,
@@ -174,7 +195,7 @@
         available: v.available, is_new: v.is_new, sizes: v.sizes,
       }, { cta: false, reveal: false });
     }
-    const refresh = () => { renderSizes(); renderPhotos(); renderPreview(); };
+    const refresh = () => { renderSizes(); renderSoldOut(); renderPhotos(); renderPreview(); };
 
     // Algunos sistemas (sobre todo Linux) no informan bien el tipo del archivo,
     // así que también se acepta por extensión. El servidor revisa el contenido real.
@@ -213,6 +234,13 @@
       const b = e.target.closest('[data-size]');
       if (!b) return;
       sizes.has(b.dataset.size) ? sizes.delete(b.dataset.size) : sizes.add(b.dataset.size);
+      dirty = true;
+      refresh();
+    });
+    document.getElementById('soldout').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-out]');
+      if (!b) return;
+      soldOut.has(b.dataset.out) ? soldOut.delete(b.dataset.out) : soldOut.add(b.dataset.out);
       dirty = true;
       refresh();
     });

@@ -25,6 +25,8 @@ export const money = (n) => `$${Number(n).toFixed(2)}`;
 export const finalPrice = (p) => (p.sale_price != null ? p.sale_price : p.price);
 export const discountPct = (p) => (p.sale_price != null ? Math.round((1 - p.sale_price / p.price) * 100) : 0);
 export const PLACEHOLDER_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#1C1C1C"/></svg>');
+// Talla agotada (el dueño la marca en el panel) o producto completo agotado
+export const sizeOut = (p, s) => !p.available || (p.sold_out_sizes || []).includes(s);
 export const productImg = (p, i = 0) => p.images[i] || p.images[0] || PLACEHOLDER_IMG;
 
 // ---------- Datos del catálogo (una sola llamada por página) ----------

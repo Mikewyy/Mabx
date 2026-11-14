@@ -23,7 +23,7 @@
   <div data-footer></div>
 
   <script type="module">
-    import { renderChrome, getCatalog, cart, esc, money, finalPrice, productImg, buildOrderMessage, whatsappUrl, ICONS, errorBox, EMBLEM_PATHS } from '/assets/js/common.js';
+    import { renderChrome, getCatalog, cart, esc, money, finalPrice, productImg, buildOrderMessage, whatsappUrl, ICONS, errorBox, EMBLEM_PATHS, sizeOut } from '/assets/js/common.js';
     renderChrome('carrito');
     const root = document.getElementById('root');
     const bar = document.getElementById('cart-bar');
@@ -77,7 +77,9 @@
         return;
       }
 
-      const orderable = items.filter((i) => i.product.available);
+      // No se piden prendas agotadas ni tallas agotadas ("Única" = producto sin tallas)
+      const canOrder = (i) => i.product.available && !(i.size !== 'Única' && sizeOut(i.product, i.size));
+      const orderable = items.filter(canOrder);
       const units = orderable.reduce((n, i) => n + i.qty, 0);
       const subtotal = orderable.reduce((s, i) => s + i.product.price * i.qty, 0);
       const total = orderable.reduce((s, i) => s + finalPrice(i.product) * i.qty, 0);
@@ -100,12 +102,13 @@
             ${items.map((i) => {
               const p = i.product;
               const pct = p.sale_price != null ? Math.round((1 - p.sale_price / p.price) * 100) : 0;
+              const ok = canOrder(i);
               return `
-              <div class="citem${rv}${p.available ? '' : ' off'}" data-row="${p.id}|${esc(i.size)}">
+              <div class="citem${rv}${ok ? '' : ' off'}" data-row="${p.id}|${esc(i.size)}">
                 <a class="cthumb" href="/producto?id=${p.id}" tabindex="-1" aria-hidden="true"><img src="${esc(productImg(p))}" alt=""></a>
                 <div class="cinfo">
                   <h3><a href="/producto?id=${p.id}">${esc(p.name)}</a></h3>
-                  <p class="meta"><span class="size-tag">Talla ${esc(i.size)}</span>${pct ? `<span class="accent">-${pct}%</span>` : ''}${p.available ? '' : '<strong>Agotado</strong>'}</p>
+                  <p class="meta"><span class="size-tag">Talla ${esc(i.size)}</span>${pct ? `<span class="accent">-${pct}%</span>` : ''}${!p.available ? '<strong>Agotado</strong>' : ok ? '' : '<strong>Talla agotada</strong>'}</p>
                   <div class="qty sm">
                     <button type="button" data-act="dec" data-id="${p.id}" data-size="${esc(i.size)}" aria-label="Quitar una unidad de ${esc(p.name)}, talla ${esc(i.size)}">−</button>
                     <output aria-label="Cantidad">${i.qty}</output>

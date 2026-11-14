@@ -175,7 +175,7 @@
         (!form.disponibles.checked || p.available) &&
         (!cats.length || cats.includes(p.category_id)) &&
         (!genders.length || genders.includes(p.gender) || p.gender === 'unisex') &&
-        (!selectedSizes.size || p.sizes.some((s) => selectedSizes.has(s))) &&
+        (!selectedSizes.size || p.sizes.some((s) => selectedSizes.has(s) && !(p.sold_out_sizes || []).includes(s))) &&
         finalPrice(p) <= max
       );
       const sort = sortSel.value;
