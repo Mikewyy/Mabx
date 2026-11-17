@@ -31,6 +31,12 @@ export const productImg = (p, i = 0) => p.images[i] || p.images[0] || PLACEHOLDE
 
 // ---------- Datos del catálogo (una sola llamada por página) ----------
 let catalogPromise;
+// Recuadros de colección del inicio: valores por defecto si el dueño no los cambió en el panel
+export const COLLECTION_TILES = [
+  { key: 'mujer', title: 'Mujer', image: '/img/demo/camisaDama2.webp' },
+  { key: 'hombre', title: 'Hombre', image: '/img/demo/hombre-negra.webp' },
+];
+
 export function getCatalog() {
   catalogPromise ??= fetch('/api/catalog').then((r) => {
     if (!r.ok) throw new Error('No se pudo cargar el catálogo');

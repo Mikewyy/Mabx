@@ -89,7 +89,7 @@
       <div class="wrap">
         <h2 id="cats-title" class="sr-only">Colecciones</h2>
         <div class="cats">
-          <a class="cat-tile reveal" href="/catalogo?genero=mujer">
+          <a class="cat-tile reveal" href="/catalogo?genero=mujer" data-tile="mujer">
             <img src="/img/demo/camisaDama2.webp" alt="" loading="lazy">
             <span class="num">01 / Colección</span>
             <div>
@@ -97,7 +97,7 @@
               <span class="cta">Ver colección <i></i></span>
             </div>
           </a>
-          <a class="cat-tile reveal" href="/catalogo?genero=hombre">
+          <a class="cat-tile reveal" href="/catalogo?genero=hombre" data-tile="hombre">
             <img src="/img/demo/hombre-negra.webp" alt="" loading="lazy">
             <span class="num">02 / Colección</span>
             <div>
@@ -170,7 +170,7 @@
   <div data-footer></div>
 
   <script type="module">
-    import { renderChrome, getCatalog, productCard, esc, errorBox, emblem, EMBLEM_PATHS, ICONS } from '/assets/js/common.js';
+    import { renderChrome, getCatalog, productCard, esc, errorBox, emblem, EMBLEM_PATHS, ICONS, COLLECTION_TILES } from '/assets/js/common.js';
     renderChrome('inicio');
 
     // Brújulas decorativas (hero y cierre) a partir del mismo dibujo del logo
@@ -184,6 +184,17 @@
     document.querySelectorAll('[data-points] li').forEach((li) => li.insertAdjacentHTML('afterbegin', emblem(18)));
 
     document.querySelector('[data-icon="whatsapp"]').innerHTML = ICONS.whatsapp(22);
+
+    // Recuadros Mujer / Hombre: foto y título elegidos en el panel (Configuración)
+    getCatalog().then(({ settings: s }) => {
+      for (const t of COLLECTION_TILES) {
+        const tile = document.querySelector(`[data-tile="${t.key}"]`);
+        const img = s[`tile_${t.key}_image`];
+        const title = s[`tile_${t.key}_title`];
+        if (img && img !== t.image) tile.querySelector('img').src = img;
+        if (title) tile.querySelector('h3').textContent = title;
+      }
+    }).catch(() => {});
 
     const grid = document.getElementById('featured');
     try {

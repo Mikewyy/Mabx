@@ -56,10 +56,15 @@ tr.is-off .tdimg { opacity: .5; }
 tr.is-off .pname, tr.is-off .pprice { color: var(--mut); }
 
 label.f, .flbl { display: block; font-size: 13px; color: var(--mut); margin: 0 0 8px; font-weight: 600; }
-.input, .admin input[type=text], .admin input[type=number], .admin input[type=email], .admin input[type=password], .admin input[type=tel], .admin input[type=url], .admin textarea, .admin select, .login input[type=email], .login input[type=password] {
+.input, .admin input[type=text], .admin input[type=number], .admin input[type=email], .admin input[type=password], .admin input[type=tel], .admin input[type=url], .admin textarea, .admin select, #pass, .login input[type=email], .login input[type=password] {
   width: 100%; background: var(--bg); border: 1px solid var(--bd); border-radius: 11px; color: var(--tx); padding: 13px 15px; font-size: 15px; font-family: var(--body); outline: none;
 }
-.login input[type=email], .login input[type=password] { height: 50px; padding: 0 16px; }
+.login input[type=email], .login input[type=password], #pass { height: 50px; padding: 0 16px; }
+.pw-wrap { position: relative; }
+.pw-wrap #pass { padding-right: 52px; }
+.pw-toggle { position: absolute; top: 0; right: 0; height: 50px; width: 50px; display: flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: 0 11px 11px 0; color: var(--mut); cursor: pointer; }
+.pw-toggle:hover { color: var(--tx); }
+.pw-toggle:focus-visible { outline: 2px solid var(--ac); outline-offset: -2px; }
 .admin textarea { resize: vertical; line-height: 1.5; }
 .admin input:focus, .admin textarea:focus, .admin select:focus, .login input:focus { border-color: var(--ac); }
 .field { margin-bottom: 22px; }
@@ -68,6 +73,11 @@ label.f, .flbl { display: block; font-size: 13px; color: var(--mut); margin: 0 0
 .config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
 .secttl { font-size: 12px; color: var(--mut); letter-spacing: .1em; text-transform: uppercase; margin: 0 0 6px; }
 .help { color: var(--mut); font-size: 12px; margin: 8px 0 0; }
+.tiles-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.tile-edit { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 18px; align-items: start; padding: 16px; border: 1px solid var(--bd); border-radius: 14px; }
+.tile-prev { position: relative; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; background: var(--ac); }
+.tile-prev img { width: 100%; height: 100%; object-fit: cover; }
+.tile-prev span { position: absolute; left: 8px; bottom: 6px; font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1; color: #0A0A0A; text-shadow: 0 0 6px rgba(198, 245, 0, .9); text-transform: uppercase; }
 
 .switch { position: relative; display: inline-flex; width: 52px; height: 30px; flex: none; }
 .switch input { opacity: 0; width: 100%; height: 100%; position: absolute; margin: 0; cursor: pointer; }
@@ -131,7 +141,7 @@ label.f, .flbl { display: block; font-size: 13px; color: var(--mut); margin: 0 0
   .stat { padding: 14px; }
   .stat .val { font-size: 24px; }
   .table-wrap { padding: 4px 14px 14px; }
-  .config-grid, .wa-grid { grid-template-columns: 1fr; }
+  .config-grid, .wa-grid, .tiles-grid { grid-template-columns: 1fr; }
   .panel { padding: 20px; }
   .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
@@ -161,6 +171,7 @@ label.f, .flbl { display: block; font-size: 13px; color: var(--mut); margin: 0 0
 }
 @media (max-width: 520px) {
   .two { grid-template-columns: 1fr; }
+  .tile-edit { grid-template-columns: 96px minmax(0, 1fr); gap: 14px; padding: 12px; }
   .stats .lbl { font-size: 12px; }
 }
 
@@ -175,7 +186,7 @@ label.f, .flbl { display: block; font-size: 13px; color: var(--mut); margin: 0 0
   button.badge::after { inset: -11px -4px; }
   .sidebar .logo { padding: 10px; margin: -10px 0 -10px -10px; }
   .admin-crumbs a { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; }
-  .input, .admin input[type=text], .admin input[type=number], .admin input[type=email], .admin input[type=password], .admin input[type=tel], .admin input[type=url], .admin select, .login input[type=email], .login input[type=password] { min-height: 44px; }
+  .input, .admin input[type=text], .admin input[type=number], .admin input[type=email], .admin input[type=password], .admin input[type=tel], .admin input[type=url], .admin select, .login input[type=email], .login input[type=password], #pass { min-height: 44px; }
 }
 
 /* Editor: cambiar la portada y barra de guardar */

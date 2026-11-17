@@ -21,7 +21,7 @@
       <div class="admin-head reveal reveal-fade">
         <div>
           <p class="kicker">Panel · Mabx</p>
-          <h1>Ofertas, categorías y WhatsApp</h1>
+          <h1>Configuración</h1>
         </div>
       </div>
 
@@ -51,6 +51,18 @@
           <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px">
             <button class="btn btn-ac" type="submit">Guardar cambios</button>
             <a class="btn btn-gh" id="wa-test" href="#" target="_blank" rel="noopener">Probar enlace de WhatsApp</a>
+          </div>
+        </form>
+
+        <!-- RECUADROS DE COLECCIÓN DEL INICIO -->
+        <form class="panel reveal reveal-fade" id="recuadros" style="grid-column:1 / -1;scroll-margin-top:80px">
+          <p class="secttl">Página de inicio</p>
+          <h2 style="font-size:24px;font-weight:700;margin:0 0 6px">Recuadros Mujer y Hombre</h2>
+          <p class="help" style="margin:0 0 20px">Son los dos recuadros que aparecen debajo de los productos destacados y llevan al catálogo de cada colección.</p>
+          <div class="tiles-grid" id="tiles"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px">
+            <button class="btn btn-ac" type="submit" id="tiles-save">Guardar recuadros</button>
+            <a class="btn btn-gh" href="/#cats-title" target="_blank" rel="noopener">Ver en la tienda</a>
           </div>
         </form>
 
@@ -85,14 +97,10 @@
   </div>
 
   <script type="module">
-    import { api, requireAdmin, renderSidebar, toast, esc, AICONS } from '/assets/js/admin.js';
-    import { whatsappUrl } from '/assets/js/common.js';
+    import { api, requireAdmin, renderSidebar, toast, esc, AICONS, uploadPhoto } from '/assets/js/admin.js';
+    import { whatsappUrl, COLLECTION_TILES } from '/assets/js/common.js';
     await requireAdmin();
-    const section = () => ({ '#ofertas': 'ofertas', '#categorias': 'categorias' }[location.hash] || 'config');
-    renderSidebar(section());
-    window.addEventListener('hashchange', () => {
-      document.querySelectorAll('.snav[href^="/admin/config"]').forEach((a) => a.toggleAttribute('aria-current', a.getAttribute('href').endsWith(location.hash || '#whatsapp')));
-    });
+    renderSidebar('config');
     document.getElementById('cat-add').innerHTML = AICONS.plus(14) + ' Añadir';
     document.getElementById('promo-add').innerHTML = AICONS.plus(14) + ' Nueva';
 
@@ -110,6 +118,64 @@
       try { await api('/api/admin/settings', { method: 'PUT', body }); toast('Cambios guardados'); }
       catch (ex) { toast(ex.message); }
     });
+
+    // ---- Recuadros de colección (inicio) ----
+    // Se guarda la dirección de la foto; si queda vacía, la tienda usa la foto por defecto.
+    const tilesForm = document.getElementById('recuadros');
+    const tileState = {};
+    for (const t of COLLECTION_TILES) tileState[t.key] = { image: settings[`tile_${t.key}_image`] || '', title: settings[`tile_${t.key}_title`] || '' };
+    function renderTiles() {
+      document.getElementById('tiles').innerHTML = COLLECTION_TILES.map((t) => {
+        const st = tileState[t.key];
+        return `<div class="tile-edit">
+          <div class="tile-prev"><img src="${esc(st.image || t.image)}" alt="Foto actual del recuadro ${esc(t.title)}"><span>${esc(st.title || t.title)}</span></div>
+          <div class="tile-fields">
+            <label class="f" for="tile-${t.key}-title">Título del recuadro ${esc(t.title)}</label>
+            <input id="tile-${t.key}-title" type="text" maxlength="20" data-title="${t.key}" value="${esc(st.title)}" placeholder="${esc(t.title)}">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+              <label class="btn btn-gh btn-sm" style="cursor:pointer">Cambiar foto<input type="file" accept="image/*" data-file="${t.key}" hidden></label>
+              ${st.image ? `<button type="button" class="btn btn-gh btn-sm" data-reset="${t.key}">Usar foto original</button>` : ''}
+            </div>
+            <p class="help">Recomendado: foto vertical de la prenda. Se ajusta sola al recuadro.</p>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    tilesForm.addEventListener('input', (e) => {
+      const key = e.target.dataset.title;
+      if (!key) return;
+      tileState[key].title = e.target.value;
+      e.target.closest('.tile-edit').querySelector('.tile-prev span').textContent = e.target.value.trim() || COLLECTION_TILES.find((t) => t.key === key).title;
+    });
+    tilesForm.addEventListener('change', async (e) => {
+      const key = e.target.dataset.file;
+      const file = e.target.files?.[0];
+      if (!key || !file) return;
+      const btn = document.getElementById('tiles-save');
+      btn.disabled = true; toast('Subiendo foto…');
+      try {
+        tileState[key].image = await uploadPhoto(file, `recuadro-${key}`);
+        renderTiles(); toast('Foto lista. Pulsa “Guardar recuadros” para publicarla.');
+      } catch (ex) { toast(ex.message); }
+      finally { btn.disabled = false; }
+    });
+    tilesForm.addEventListener('click', (e) => {
+      const r = e.target.closest('[data-reset]');
+      if (!r) return;
+      tileState[r.dataset.reset].image = '';
+      renderTiles();
+    });
+    tilesForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {};
+      for (const t of COLLECTION_TILES) {
+        body[`tile_${t.key}_image`] = tileState[t.key].image;
+        body[`tile_${t.key}_title`] = tileState[t.key].title.trim();
+      }
+      try { await api('/api/admin/settings', { method: 'PUT', body }); toast('Recuadros guardados'); }
+      catch (ex) { toast(ex.message); }
+    });
+    renderTiles();
 
     // ---- Categorías ----
     function renderCats() {

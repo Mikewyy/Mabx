@@ -5,8 +5,6 @@ export { esc };
 
 export const AICONS = {
   products: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>',
-  offers: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  categories: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
   settings: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12l-2-1 1-2-2-2-2 1-1-2h-2l-1 2-2-1-2 2 1 2-2 1v2l2 1-1 2 2 2 2-1 1 2h2l1-2 2 1 2-2-1-2 2-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
   plus: (s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`,
   edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
@@ -45,9 +43,7 @@ export function renderSidebar(active) {
       <a href="/" class="logo" title="Ver la tienda" aria-label="Mabx, ver la tienda">${ICONS.logo(24)}<span>MABX</span></a>
       <nav class="snav-list" aria-label="Panel">
         ${link('/admin/productos', 'productos', AICONS.products, 'Productos')}
-        ${link('/admin/config#ofertas', 'ofertas', AICONS.offers, 'Ofertas')}
-        ${link('/admin/config#categorias', 'categorias', AICONS.categories, 'Categorías')}
-        ${link('/admin/config#whatsapp', 'config', AICONS.settings, 'Configuración', 'Ajustes')}
+        ${link('/admin/config', 'config', AICONS.settings, 'Configuración', 'Ajustes')}
       </nav>
       <div class="side-foot">
         <a href="/" class="snav" target="_blank" rel="noopener" title="Ver la tienda (se abre en otra pestaña)">${AICONS.eye}<span>Ver tienda</span></a>

@@ -32,7 +32,10 @@
           </div>
           <div class="field" style="margin-bottom:14px">
             <label class="f" for="pass">Contraseña</label>
-            <input id="pass" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+            <div class="pw-wrap">
+              <input id="pass" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+              <button type="button" class="pw-toggle" id="pw-toggle" aria-label="Mostrar contraseña" aria-pressed="false"></button>
+            </div>
           </div>
           <label class="flabel" style="margin-bottom:20px"><input type="checkbox" name="remember"> Recordarme por 7 días</label>
           <button class="btn btn-ac btn-lg btn-block" id="submit">Ingresar</button>
@@ -46,6 +49,21 @@
     document.getElementById('logo').innerHTML = ICONS.logo(30) + '<span style="font-size:34px">MABX</span>';
     const me = await fetch('/api/me').then((r) => r.json()).catch(() => ({}));
     if (me.admin) location.replace('/admin/productos');
+
+    // Ojo para mostrar u ocultar la contraseña
+    const EYE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>';
+    const EYE_OFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.8 0 3.4-.5 4.8-1.3M9.9 9.9a3 3 0 0 0 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const pass = document.getElementById('pass');
+    const toggle = document.getElementById('pw-toggle');
+    toggle.innerHTML = EYE;
+    toggle.addEventListener('click', () => {
+      const show = pass.type === 'password';
+      pass.type = show ? 'text' : 'password';
+      toggle.innerHTML = show ? EYE_OFF : EYE;
+      toggle.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+      toggle.setAttribute('aria-pressed', String(show));
+      pass.focus();
+    });
 
     const form = document.getElementById('form');
     const err = document.getElementById('err');
@@ -62,6 +80,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'No se pudo iniciar sesión');
+        pass.type = 'password';
         location.href = '/admin/productos';
       } catch (ex) {
         err.textContent = ex.message; err.hidden = false;

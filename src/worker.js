@@ -5,7 +5,10 @@
 
 const SESSION_COOKIE = 'mabx_session';
 const SESSION_HOURS = 24 * 7;
-const PUBLIC_SETTINGS = ['whatsapp_number', 'whatsapp_message', 'instagram', 'tiktok', 'facebook', 'shipping_info'];
+const PUBLIC_SETTINGS = ['whatsapp_number', 'whatsapp_message', 'instagram', 'tiktok', 'facebook', 'shipping_info',
+  'tile_mujer_image', 'tile_mujer_title', 'tile_hombre_image', 'tile_hombre_title'];
+// Recuadros de colección del inicio: fotos que se pueden cambiar desde el panel (vacío = foto por defecto)
+const TILE_IMAGE_KEYS = ['tile_mujer_image', 'tile_hombre_image'];
 const GENDERS = ['hombre', 'mujer', 'unisex'];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
@@ -206,9 +209,15 @@ async function savePromotion(env, id, body) {
 
 async function saveSettings(env, body) {
   const stmts = [];
+  const replacedImages = [];
   for (const key of PUBLIC_SETTINGS) {
     if (body[key] === undefined) continue;
     let value = str(body[key], 1000);
+    if (TILE_IMAGE_KEYS.includes(key)) {
+      if (value && !isImageUrl(value)) throw new HttpError(400, 'Foto del recuadro no válida');
+      const old = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(key).first();
+      if (old?.value && old.value !== value) replacedImages.push(old.value);
+    }
     if (key === 'whatsapp_number') {
       value = value.replace(/\D/g, '');
       if (value.length < 8) throw new HttpError(400, 'Número de WhatsApp no válido (incluye el código de país, ej. 593...)');
@@ -216,7 +225,22 @@ async function saveSettings(env, body) {
     stmts.push(env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(key, value));
   }
   if (stmts.length) await env.DB.batch(stmts);
+  await deleteUnusedMedia(env, replacedImages);
   return { ok: true };
+}
+
+// Borra de R2 las fotos reemplazadas, solo si ya no las usa ningún producto ni otro recuadro
+async function deleteUnusedMedia(env, urls) {
+  const keys = [];
+  for (const u of urls) {
+    if (!u.startsWith('/media/')) continue;
+    const used = await env.DB.batch([
+      env.DB.prepare('SELECT 1 FROM products WHERE instr(images, ?) > 0 LIMIT 1').bind(JSON.stringify(u)),
+      env.DB.prepare('SELECT 1 FROM settings WHERE value = ? LIMIT 1').bind(u),
+    ]);
+    if (!used.some((r) => r.results.length)) keys.push(u.slice(7));
+  }
+  if (keys.length) await env.IMAGES.delete(keys);
 }
 
 const DELETABLE = new Set(['products', 'categories', 'promotions']);
