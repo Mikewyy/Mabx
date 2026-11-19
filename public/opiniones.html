@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opiniones · Mabx</title>
+  <meta name="description" content="Lo que dicen los clientes de Mabx sobre su ropa deportiva. Deja tu opinión con una foto de tu prenda.">
+  <meta name="theme-color" content="#0A0A0A">
+  <meta property="og:title" content="Opiniones de clientes · Mabx">
+  <meta property="og:description" content="¿Ya entrenas con Mabx? Cuéntanos cómo te fue y comparte tu foto.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
+</head>
+<body>
+  <div data-header></div>
+  <noscript><p class="noscript">Activa JavaScript en tu navegador para ver las opiniones y dejar la tuya.</p></noscript>
+  <main>
+    <section class="shop-head" aria-labelledby="title">
+      <svg class="page-emblem" viewBox="0 0 48 48" fill="none" aria-hidden="true" data-emblem></svg>
+      <div class="wrap">
+        <p class="eyebrow" data-enter style="--d:.04s">Clientes Mabx</p>
+        <h1 id="title" data-enter style="--d:.1s">Opiniones</h1>
+        <p class="shop-sub" data-enter style="--d:.18s">Lo que dicen quienes ya entrenan con Mabx. ¿Tienes una prenda nuestra? Cuéntanos cómo te fue.</p>
+        <div data-enter style="--d:.26s"><a href="#opinar" class="btn btn-ac">Deja tu opinión <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+      </div>
+    </section>
+
+    <section class="wrap reviews-page" aria-label="Opiniones de clientes">
+      <div class="reviews" id="reviews"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    </section>
+
+    <!-- Formulario: la opinión queda pendiente hasta que el admin la aprueba -->
+    <section class="wrap review-form-wrap" id="opinar" aria-labelledby="form-title">
+      <div class="review-form-card">
+        <div class="review-form-intro">
+          <p class="eyebrow">Tu opinión</p>
+          <h2 id="form-title">Cuéntanos cómo te fue</h2>
+          <p>Tu opinión se publica después de que la revisemos. Si quieres, súmale una foto con tu prenda Mabx.</p>
+        </div>
+
+        <form id="form" class="review-form" novalidate>
+          <div class="alert-err" id="err" role="alert" hidden></div>
+
+          <div class="rf-field">
+            <label for="name">Tu nombre</label>
+            <input id="name" name="name" type="text" maxlength="60" autocomplete="given-name" placeholder="Ej. Andrea M." required>
+          </div>
+
+          <fieldset class="rf-field rf-stars">
+            <legend>¿Cuántas estrellas nos das?</legend>
+            <div class="star-input">
+              <input type="radio" name="rating" id="r5" value="5" checked><label for="r5" title="5 estrellas"><span class="sr-only">5 estrellas</span></label>
+              <input type="radio" name="rating" id="r4" value="4"><label for="r4" title="4 estrellas"><span class="sr-only">4 estrellas</span></label>
+              <input type="radio" name="rating" id="r3" value="3"><label for="r3" title="3 estrellas"><span class="sr-only">3 estrellas</span></label>
+              <input type="radio" name="rating" id="r2" value="2"><label for="r2" title="2 estrellas"><span class="sr-only">2 estrellas</span></label>
+              <input type="radio" name="rating" id="r1" value="1"><label for="r1" title="1 estrella"><span class="sr-only">1 estrella</span></label>
+            </div>
+          </fieldset>
+
+          <div class="rf-field">
+            <label for="message">Tu opinión</label>
+            <textarea id="message" name="message" rows="4" maxlength="600" placeholder="¿Qué prenda compraste? ¿Cómo te queda? ¿Cómo fue tu pedido?" required></textarea>
+            <p class="rf-help"><span id="msg-count">0</span> / 600</p>
+          </div>
+
+          <div class="rf-field">
+            <span class="rf-label" id="photo-lbl">Foto con tu prenda <span class="muted">(opcional)</span></span>
+            <div class="rf-photo" id="photo-box">
+              <label class="rf-photo-add" for="photo" id="photo-add">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.8"/></svg>
+                <span>Elegir foto</span>
+              </label>
+              <input type="file" id="photo" accept="image/*" aria-labelledby="photo-lbl" hidden>
+              <div class="rf-photo-prev" id="photo-prev" hidden>
+                <img alt="Vista previa de tu foto">
+                <button type="button" class="rf-photo-rm" id="photo-rm" aria-label="Quitar foto">Quitar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trampa para robots: oculta para las personas -->
+          <div class="rf-trap" aria-hidden="true"><label>Sitio web <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+          <label class="flabel rf-consent"><input type="checkbox" name="consent" required> Autorizo a Mabx a publicar mi nombre, mi opinión y mi foto en su página.</label>
+
+          <button type="submit" class="btn btn-ac btn-lg btn-block" id="send">Enviar opinión</button>
+        </form>
+
+        <div class="review-thanks" id="thanks" hidden tabindex="-1">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>¡Gracias por tu opinión!</h3>
+          <p>La revisaremos y aparecerá aquí muy pronto.</p>
+          <a href="/catalogo" class="btn btn-gh">Seguir viendo la tienda</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div data-footer></div>
+
+  <script type="module">
+    import { renderChrome, getReviews, reviewCard, emblem, EMBLEM_PATHS, optimizePhoto } from '/assets/js/common.js';
+    renderChrome('opiniones');
+    document.querySelectorAll('[data-emblem]').forEach((svg) => {
+      svg.innerHTML = EMBLEM_PATHS.arcs.map((d) => `<path class="em-arc" d="${d}" stroke="currentColor" stroke-linecap="round" pathLength="1"/>`).join('')
+        + `<path class="em-star" d="${EMBLEM_PATHS.star}"/>`;
+    });
+
+    // Lista de opiniones aprobadas
+    const list = document.getElementById('reviews');
+    getReviews().then((reviews) => {
+      list.innerHTML = reviews.length
+        ? reviews.map((r) => reviewCard(r)).join('')
+        : `<div class="empty-state">${emblem(44)}<h3>Sé el primero en opinar</h3><p>Todavía no hay opiniones publicadas. ¡Cuéntanos cómo te fue con tu prenda Mabx!</p></div>`;
+    }).catch(() => { list.innerHTML = '<div class="empty-state"><p>No pudimos cargar las opiniones. Recarga la página para intentarlo de nuevo.</p></div>'; });
+
+    // ---- Formulario ----
+    const form = document.getElementById('form');
+    const err = document.getElementById('err');
+    const send = document.getElementById('send');
+    const startedAt = Date.now();
+    const msg = form.message;
+    msg.addEventListener('input', () => { document.getElementById('msg-count').textContent = msg.value.length; });
+
+    // Foto: se convierte a WEBP en el teléfono antes de enviarla (pesa mucho menos)
+    let photo = null;
+    const prev = document.getElementById('photo-prev');
+    const fileInput = document.getElementById('photo');
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0];
+      fileInput.value = '';
+      if (!f) return;
+      if (f.size > 30 * 1024 * 1024) { showErr('La foto pesa demasiado (máx. 30 MB).'); return; }
+      try {
+        photo = await optimizePhoto(f, 'opinion');
+        const img = prev.querySelector('img');
+        URL.revokeObjectURL(img.src);
+        img.src = URL.createObjectURL(photo);
+        prev.hidden = false;
+        document.getElementById('photo-add').hidden = true;
+        err.hidden = true;
+      } catch { showErr('No pudimos leer esa foto. Prueba con otra (JPG, PNG o WEBP).'); }
+    });
+    document.getElementById('photo-rm').addEventListener('click', () => {
+      photo = null; prev.hidden = true; document.getElementById('photo-add').hidden = false;
+    });
+
+    function showErr(text, field) {
+      err.textContent = text; err.hidden = false;
+      (field || err).focus?.();
+      err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.hidden = true;
+      const name = form.name.value.trim();
+      const message = msg.value.trim();
+      if (name.length < 2) return showErr('Escribe tu nombre.', form.name);
+      if (message.length < 10) return showErr('Cuéntanos un poco más (mínimo 10 letras).', msg);
+      if (!form.consent.checked) return showErr('Marca la casilla para autorizar la publicación.', form.consent);
+
+      const fd = new FormData();
+      fd.append('name', name);
+      fd.append('message', message);
+      fd.append('rating', form.rating.value);
+      fd.append('consent', 'on');
+      fd.append('website', form.website.value);
+      fd.append('t', String(startedAt));
+      if (photo) fd.append('photo', photo);
+
+      send.disabled = true; send.textContent = photo ? 'Subiendo foto…' : 'Enviando…';
+      try {
+        const res = await fetch('/api/reviews', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'No se pudo enviar tu opinión. Intenta de nuevo.');
+        form.hidden = true;
+        const thanks = document.getElementById('thanks');
+        thanks.hidden = false;
+        thanks.focus();
+      } catch (ex) {
+        showErr(ex.message);
+        send.disabled = false; send.textContent = 'Enviar opinión';
+      }
+    });
+  </script>
+</body>
+</html>

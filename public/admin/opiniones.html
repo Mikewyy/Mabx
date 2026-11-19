@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <title>Opiniones · Panel Mabx</title>
+</head>
+<body>
+  <div class="admin">
+    <div data-sidebar></div>
+    <main class="admin-main">
+      <div class="admin-head reveal reveal-fade">
+        <div>
+          <p class="kicker">Panel · Mabx</p>
+          <h1>Opiniones</h1>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" class="btn btn-gh" id="copy-link">Copiar enlace para clientes</button>
+          <button type="button" class="btn btn-ac" id="new-btn"></button>
+        </div>
+      </div>
+      <p class="help" style="margin:-14px 0 22px;font-size:13px">Las opiniones que envían los clientes desde <a href="/opiniones" target="_blank" rel="noopener" class="accent">/opiniones</a> llegan a <strong>Pendientes</strong> y solo se ven en la tienda cuando las apruebas.</p>
+
+      <!-- Crear / editar -->
+      <form class="panel rform-panel" id="rform" hidden novalidate style="margin-bottom:24px">
+        <p class="secttl" id="rform-kicker">Nueva opinión</p>
+        <h2 id="rform-title" style="font-size:24px;font-weight:700;margin:0 0 18px">Agregar opinión de un cliente</h2>
+        <div class="alert err" id="rerr" role="alert" hidden></div>
+        <div class="rform">
+          <div class="two">
+            <div><label class="f" for="r-name">Nombre del cliente</label><input id="r-name" type="text" maxlength="60" placeholder="Ej. Andrea M." required></div>
+            <div>
+              <span class="flbl" id="r-stars-lbl">Estrellas</span>
+              <div class="star-pick" id="r-stars" role="group" aria-labelledby="r-stars-lbl"></div>
+            </div>
+          </div>
+          <div><label class="f" for="r-msg">Mensaje</label><textarea id="r-msg" rows="4" maxlength="600" placeholder="Copia aquí lo que te escribió el cliente"></textarea></div>
+          <div>
+            <span class="flbl">Foto (opcional)</span>
+            <div class="rform-photo">
+              <div id="r-photo"></div>
+              <label class="btn btn-gh btn-sm" style="cursor:pointer"><span id="r-photo-lbl">Elegir foto</span><input type="file" id="r-file" accept="image/*" hidden></label>
+              <button type="button" class="btn btn-gh btn-sm" id="r-photo-rm" hidden>Quitar foto</button>
+            </div>
+            <p class="help">Se convierte sola a WEBP. Puede ser una captura del cliente con su prenda.</p>
+          </div>
+          <div id="r-status-wrap" hidden><label class="f" for="r-status">Estado</label>
+            <select id="r-status"><option value="publicada">Publicada (se ve en la tienda)</option><option value="pendiente">Pendiente</option><option value="oculta">Oculta</option></select>
+          </div>
+          <div class="save-bar">
+            <button type="submit" class="btn btn-ac btn-lg" id="r-save">Publicar opinión</button>
+            <button type="button" class="btn btn-gh btn-lg" id="r-cancel">Cancelar</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="rtabs" role="group" aria-label="Filtrar opiniones" id="tabs"></div>
+      <div class="rlist" id="list"><p class="muted">Cargando…</p></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { api, requireAdmin, renderSidebar, toast, esc, AICONS, uploadPhoto, refreshPendingBadge } from '/assets/js/admin.js';
+    import { shortDate } from '/assets/js/common.js';
+    await requireAdmin();
+    renderSidebar('opiniones');
+    document.getElementById('new-btn').innerHTML = AICONS.plus() + ' Nueva opinión';
+
+    const TABS = [['pendiente', 'Pendientes'], ['publicada', 'Publicadas'], ['oculta', 'Ocultas']];
+    let reviews = [];
+    let tab = 'pendiente';
+    const list = document.getElementById('list');
+    const starsTxt = (n) => `<span class="rstars" aria-label="${n} de 5 estrellas">${'★'.repeat(n)}<span class="off">${'★'.repeat(5 - n)}</span></span>`;
+
+    async function load() {
+      reviews = (await api('/api/admin/reviews')).reviews;
+      // Si no hay pendientes, abre directamente las publicadas
+      if (tab === 'pendiente' && !reviews.some((r) => r.status === 'pendiente') && !load.done) tab = 'publicada';
+      load.done = true;
+      render();
+    }
+
+    function render() {
+      const count = (s) => reviews.filter((r) => r.status === s).length;
+      document.getElementById('tabs').innerHTML = TABS.map(([k, label]) =>
+        `<button type="button" class="rtab${k === 'pendiente' && count(k) ? ' has-pending' : ''}" data-tab="${k}" aria-pressed="${k === tab}">${label} <span class="n">${count(k)}</span></button>`).join('');
+      const items = reviews.filter((r) => r.status === tab);
+      if (!items.length) {
+        list.innerHTML = `<p class="muted" style="grid-column:1/-1">${tab === 'pendiente' ? 'No hay opiniones esperando revisión.' : tab === 'publicada' ? 'Aún no hay opiniones publicadas. Agrega una con “Nueva opinión” o comparte el enlace con tus clientes.' : 'No hay opiniones ocultas.'}</p>`;
+        return;
+      }
+      list.innerHTML = items.map((r) => {
+        const main = r.status === 'publicada'
+          ? `<button type="button" class="btn btn-gh btn-sm" data-act="oculta" data-id="${r.id}">Ocultar</button>`
+          : `<button type="button" class="btn btn-ac btn-sm" data-act="publicada" data-id="${r.id}">${r.status === 'pendiente' ? 'Aprobar' : 'Publicar'}</button>`;
+        return `<article class="rcard ${r.status}">
+          ${r.image ? `<div class="rcard-img"><img src="${esc(r.image)}" alt="Foto de ${esc(r.name)}" loading="lazy"></div>` : ''}
+          <div class="rcard-body">
+            <div class="rcard-top"><p class="rcard-name">${esc(r.name)}</p>${starsTxt(r.rating)}</div>
+            <p class="rcard-meta">${shortDate(r.created_at)} · ${r.source === 'admin' ? 'Agregada por ti' : 'Enviada por el cliente'}</p>
+            <p class="rcard-msg">${esc(r.message)}</p>
+          </div>
+          <div class="rcard-actions">
+            ${main}
+            <button type="button" class="btn btn-gh btn-sm" data-act="edit" data-id="${r.id}">Editar</button>
+            ${r.status === 'pendiente' ? `<button type="button" class="btn btn-gh btn-sm" data-act="oculta" data-id="${r.id}">Rechazar</button>` : ''}
+            <button type="button" class="btn btn-gh btn-sm danger" data-act="del" data-id="${r.id}">Eliminar</button>
+          </div>
+        </article>`;
+      }).join('');
+    }
+
+    document.getElementById('tabs').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-tab]');
+      if (b) { tab = b.dataset.tab; render(); }
+    });
+
+    list.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      const r = reviews.find((x) => x.id === Number(b.dataset.id));
+      const act = b.dataset.act;
+      if (act === 'edit') return openForm(r);
+      b.disabled = true;
+      try {
+        if (act === 'del') {
+          if (!confirm(`¿Eliminar la opinión de "${r.name}"? También se borra su foto. No se puede deshacer.`)) { b.disabled = false; return; }
+          await api(`/api/admin/reviews/${r.id}`, { method: 'DELETE' });
+          reviews = reviews.filter((x) => x.id !== r.id);
+          toast('Opinión eliminada');
+        } else {
+          Object.assign(r, await api(`/api/admin/reviews/${r.id}`, { method: 'PATCH', body: { status: act } }));
+          toast(act === 'publicada' ? 'Publicada: ya se ve en la tienda' : 'Ocultada de la tienda');
+        }
+        render();
+        refreshPendingBadge();
+      } catch (ex) { toast(ex.message); b.disabled = false; }
+    });
+
+    // ---- Formulario crear / editar ----
+    const form = document.getElementById('rform');
+    const rerr = document.getElementById('rerr');
+    let editing = null, rating = 5, image = '', uploading = false;
+
+    function renderForm() {
+      document.getElementById('r-stars').innerHTML = [1, 2, 3, 4, 5].map((n) =>
+        `<button type="button" class="chip" data-star="${n}" aria-pressed="${n === rating}" aria-label="${n} estrella${n > 1 ? 's' : ''}">${n} ★</button>`).join('');
+      document.getElementById('r-photo').innerHTML = uploading
+        ? '<div class="photo pending" role="status" aria-label="Subiendo foto…"></div>'
+        : image ? `<div class="photo"><img src="${esc(image)}" alt="Foto de la opinión"></div>` : '';
+      document.getElementById('r-photo-rm').hidden = !image || uploading;
+      document.getElementById('r-photo-lbl').textContent = image ? 'Cambiar foto' : 'Elegir foto';
+    }
+    function openForm(r = null) {
+      editing = r;
+      rating = r?.rating ?? 5; image = r?.image ?? '';
+      document.getElementById('r-name').value = r?.name ?? '';
+      document.getElementById('r-msg').value = r?.message ?? '';
+      document.getElementById('r-status').value = r?.status ?? 'publicada';
+      document.getElementById('r-status-wrap').hidden = !r;
+      document.getElementById('rform-kicker').textContent = r ? 'Editar opinión' : 'Nueva opinión';
+      document.getElementById('rform-title').textContent = r ? `Opinión de ${r.name}` : 'Agregar opinión de un cliente';
+      document.getElementById('r-save').textContent = r ? 'Guardar cambios' : 'Publicar opinión';
+      rerr.hidden = true;
+      form.hidden = false;
+      renderForm();
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('r-name').focus({ preventScroll: true });
+    }
+    document.getElementById('new-btn').addEventListener('click', () => openForm());
+    document.getElementById('r-cancel').addEventListener('click', () => { form.hidden = true; });
+    document.getElementById('r-stars').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-star]');
+      if (b) { rating = Number(b.dataset.star); renderForm(); }
+    });
+    document.getElementById('r-file').addEventListener('change', async (e) => {
+      const f = e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      uploading = true; renderForm();
+      try { image = await uploadPhoto(f, f.name, 'opiniones'); }
+      catch (ex) { toast(ex.message); }
+      uploading = false; renderForm();
+    });
+    document.getElementById('r-photo-rm').addEventListener('click', () => { image = ''; renderForm(); });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (uploading) { toast('Espera a que termine de subir la foto'); return; }
+      rerr.hidden = true;
+      const btn = document.getElementById('r-save');
+      btn.disabled = true;
+      const body = {
+        name: document.getElementById('r-name').value,
+        message: document.getElementById('r-msg').value,
+        rating, image,
+        status: editing ? document.getElementById('r-status').value : 'publicada',
+      };
+      try {
+        if (editing) {
+          Object.assign(editing, await api(`/api/admin/reviews/${editing.id}`, { method: 'PUT', body }));
+          toast('Cambios guardados');
+        } else {
+          reviews.unshift(await api('/api/admin/reviews', { method: 'POST', body }));
+          tab = 'publicada';
+          toast('Opinión publicada en la tienda');
+        }
+        form.hidden = true;
+        render();
+        refreshPendingBadge();
+      } catch (ex) {
+        rerr.textContent = ex.message; rerr.hidden = false;
+      }
+      btn.disabled = false;
+    });
+
+    // Enlace para mandar por WhatsApp a los clientes
+    document.getElementById('copy-link').addEventListener('click', async () => {
+      const link = `${location.origin}/opiniones#opinar`;
+      try { await navigator.clipboard.writeText(link); toast('Enlace copiado: pégalo en WhatsApp para tus clientes'); }
+      catch { prompt('Copia este enlace y envíalo a tus clientes:', link); }
+    });
+
+    load().catch((ex) => { list.innerHTML = `<p class="muted">${esc(ex.message)}</p>`; });
+  </script>
+</body>
+</html>

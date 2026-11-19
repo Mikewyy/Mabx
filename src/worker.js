@@ -12,6 +12,9 @@ const TILE_IMAGE_KEYS = ['tile_mujer_image', 'tile_hombre_image'];
 const GENDERS = ['hombre', 'mujer', 'unisex'];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
+const REVIEW_STATUS = ['pendiente', 'publicada', 'oculta'];
+const REVIEWS_PER_HOUR = 3;      // envíos de clientes por conexión y por hora
+const MAX_PENDING_REVIEWS = 200; // tope de opiniones sin revisar (frena el spam masivo)
 
 export default {
   async fetch(request, env) {
@@ -39,6 +42,8 @@ async function routeApi(request, url, env) {
   if (method === 'GET' && path === '/api/catalog') return json(await getCatalog(env, false));
   if (method === 'POST' && path === '/api/login') return login(request, env);
   if (method === 'POST' && path === '/api/logout') return logout();
+  if (method === 'GET' && path === '/api/reviews') return json(await publicReviews(env));
+  if (method === 'POST' && path === '/api/reviews') return json(await submitReview(request, env), 201);
   if (method === 'GET' && path === '/api/me') return json({ admin: await isAdmin(request, env) });
 
   // Panel (requiere sesión)
@@ -67,6 +72,13 @@ async function routeApi(request, url, env) {
     }
     if (resource === 'settings' && method === 'PUT') return json(await saveSettings(env, await request.json()));
     if (resource === 'upload' && method === 'POST') return json(await uploadImage(request, env), 201);
+    if (resource === 'reviews') {
+      if (method === 'GET' && !id) return json(await adminReviews(env));
+      if (method === 'POST' && !id) return json(await saveReview(env, null, await request.json()), 201);
+      if (method === 'PUT' && id) return json(await saveReview(env, toId(id), await request.json()));
+      if (method === 'PATCH' && id) return json(await setReviewStatus(env, toId(id), await request.json()));
+      if (method === 'DELETE' && id) return json(await deleteRow(env, 'reviews', toId(id)));
+    }
   }
 
   throw new HttpError(404, 'Ruta no encontrada');
@@ -237,13 +249,14 @@ async function deleteUnusedMedia(env, urls) {
     const used = await env.DB.batch([
       env.DB.prepare('SELECT 1 FROM products WHERE instr(images, ?) > 0 LIMIT 1').bind(JSON.stringify(u)),
       env.DB.prepare('SELECT 1 FROM settings WHERE value = ? LIMIT 1').bind(u),
+      env.DB.prepare('SELECT 1 FROM reviews WHERE image = ? LIMIT 1').bind(u),
     ]);
     if (!used.some((r) => r.results.length)) keys.push(u.slice(7));
   }
   if (keys.length) await env.IMAGES.delete(keys);
 }
 
-const DELETABLE = new Set(['products', 'categories', 'promotions']);
+const DELETABLE = new Set(['products', 'categories', 'promotions', 'reviews']);
 async function deleteRow(env, table, id) {
   if (!DELETABLE.has(table)) throw new HttpError(400, 'Tabla no válida');
   if (table === 'products') {
@@ -251,6 +264,10 @@ async function deleteRow(env, table, id) {
     const row = await env.DB.prepare('SELECT images FROM products WHERE id = ?').bind(id).first();
     const keys = safeJson(row?.images, []).filter((u) => u.startsWith('/media/')).map((u) => u.slice(7));
     if (keys.length) await env.IMAGES.delete(keys);
+  }
+  if (table === 'reviews') {
+    const row = await env.DB.prepare('SELECT image FROM reviews WHERE id = ?').bind(id).first();
+    if (row?.image?.startsWith('/media/')) await env.IMAGES.delete(row.image.slice(7));
   }
   if (table === 'categories') {
     await env.DB.prepare('UPDATE products SET category_id = NULL WHERE category_id = ?').bind(id).run();
@@ -263,7 +280,12 @@ async function deleteRow(env, table, id) {
 
 async function uploadImage(request, env) {
   const form = await request.formData();
-  const file = form.get('file');
+  const folder = form.get('folder') === 'opiniones' ? 'opiniones' : 'productos';
+  return { url: await storeImage(env, form.get('file'), folder) };
+}
+
+// Guarda una imagen en R2 dentro de la carpeta indicada y devuelve su dirección /media/...
+async function storeImage(env, file, folder) {
   if (!file || typeof file === 'string') throw new HttpError(400, 'No se recibió ninguna imagen');
   if (file.size > MAX_IMAGE_BYTES) throw new HttpError(400, 'La imagen pesa más de 5 MB');
   // El tipo que manda el navegador no es fiable (a veces llega vacío, "image/jpg" u
@@ -271,9 +293,89 @@ async function uploadImage(request, env) {
   const bytes = await file.arrayBuffer();
   const type = sniffImageType(new Uint8Array(bytes, 0, Math.min(16, bytes.byteLength)));
   if (!type) throw new HttpError(400, `"${file.name || 'archivo'}" no es una imagen válida (usa JPG, PNG o WEBP)`);
-  const key = `productos/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${IMAGE_TYPES[type]}`;
+  const key = `${folder}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${IMAGE_TYPES[type]}`;
   await env.IMAGES.put(key, bytes, { httpMetadata: { contentType: type } });
-  return { url: `/media/${key}` };
+  return `/media/${key}`;
+}
+
+// ---------- Opiniones ----------
+
+const formatReview = (r, admin = false) => ({
+  id: r.id, name: r.name, message: r.message, rating: r.rating, image: r.image, created_at: r.created_at,
+  ...(admin ? { status: r.status, source: r.source } : {}),
+});
+
+async function publicReviews(env) {
+  const { results } = await env.DB.prepare(
+    "SELECT * FROM reviews WHERE status = 'publicada' ORDER BY created_at DESC, id DESC LIMIT 60"
+  ).all();
+  return { reviews: results.map((r) => formatReview(r)) };
+}
+
+async function adminReviews(env) {
+  const { results } = await env.DB.prepare('SELECT * FROM reviews ORDER BY created_at DESC, id DESC').all();
+  return { reviews: results.map((r) => formatReview(r, true)) };
+}
+
+function reviewFields(body) {
+  const name = str(body.name, 60);
+  const message = str(body.message, 600);
+  const rating = Math.round(Number(body.rating));
+  if (name.length < 2) throw new HttpError(400, 'Escribe tu nombre');
+  if (message.length < 10) throw new HttpError(400, 'Cuéntanos un poco más (mínimo 10 letras)');
+  if (!(rating >= 1 && rating <= 5)) throw new HttpError(400, 'Elige de 1 a 5 estrellas');
+  return { name, message, rating };
+}
+
+// Envío público desde /opiniones: queda pendiente hasta que el admin lo apruebe
+async function submitReview(request, env) {
+  const form = await request.formData();
+  // Trampa para robots: el campo "website" está oculto para las personas, y nadie
+  // llena el formulario en menos de 3 segundos. Se responde "ok" para no dar pistas.
+  const started = Number(form.get('t')) || 0;
+  if (str(form.get('website'), 200) || (started && Date.now() - started < 3000)) return { ok: true };
+  const { name, message, rating } = reviewFields({ name: form.get('name'), message: form.get('message'), rating: form.get('rating') });
+  if (!['on', 'true', '1'].includes(String(form.get('consent')))) throw new HttpError(400, 'Necesitamos tu autorización para publicar la opinión');
+
+  const ipHash = await sign(request.headers.get('cf-connecting-ip') || 'local', env.SESSION_SECRET || 'mabx');
+  const [recent, pending] = await env.DB.batch([
+    env.DB.prepare("SELECT COUNT(*) AS n FROM reviews WHERE ip_hash = ? AND created_at > datetime('now', '-1 hour')").bind(ipHash),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM reviews WHERE status = 'pendiente'"),
+  ]);
+  if (recent.results[0].n >= REVIEWS_PER_HOUR) throw new HttpError(429, 'Ya recibimos tus opiniones. Intenta de nuevo más tarde.');
+  if (pending.results[0].n >= MAX_PENDING_REVIEWS) throw new HttpError(429, 'Por ahora no podemos recibir más opiniones. Intenta más tarde.');
+
+  const photo = form.get('photo');
+  const image = photo && typeof photo !== 'string' && photo.size ? await storeImage(env, photo, 'opiniones') : '';
+  await env.DB.prepare("INSERT INTO reviews (name, message, rating, image, status, source, ip_hash) VALUES (?, ?, ?, ?, 'pendiente', 'cliente', ?)")
+    .bind(name, message, rating, image, ipHash).run();
+  return { ok: true };
+}
+
+// Crear (nace publicada) o editar desde el panel
+async function saveReview(env, id, body) {
+  const { name, message, rating } = reviewFields(body);
+  const image = body.image ? String(body.image) : '';
+  if (image && !isImageUrl(image)) throw new HttpError(400, 'Foto no válida');
+  const status = REVIEW_STATUS.includes(body.status) ? body.status : 'publicada';
+  if (id == null) {
+    const row = await env.DB.prepare("INSERT INTO reviews (name, message, rating, image, status, source) VALUES (?, ?, ?, ?, ?, 'admin') RETURNING *")
+      .bind(name, message, rating, image, status).first();
+    return formatReview(row, true);
+  }
+  const old = await env.DB.prepare('SELECT image FROM reviews WHERE id = ?').bind(id).first();
+  if (!old) throw new HttpError(404, 'Opinión no encontrada');
+  const row = await env.DB.prepare('UPDATE reviews SET name = ?, message = ?, rating = ?, image = ?, status = ? WHERE id = ? RETURNING *')
+    .bind(name, message, rating, image, status, id).first();
+  if (old.image && old.image !== image) await deleteUnusedMedia(env, [old.image]);
+  return formatReview(row, true);
+}
+
+async function setReviewStatus(env, id, body) {
+  if (!REVIEW_STATUS.includes(body.status)) throw new HttpError(400, 'Estado no válido');
+  const row = await env.DB.prepare('UPDATE reviews SET status = ? WHERE id = ? RETURNING *').bind(body.status, id).first();
+  if (!row) throw new HttpError(404, 'Opinión no encontrada');
+  return formatReview(row, true);
 }
 
 function sniffImageType(b) {

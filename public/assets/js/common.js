@@ -125,6 +125,33 @@ export function productCard(p, { compact = false, cta = true, reveal = true } = 
 // Hay ofertas si alguna prenda disponible tiene precio de oferta o hay promociones activas
 export const hasOffers = ({ products, promotions }) => products.some((p) => p.available && p.sale_price != null) || promotions.length > 0;
 
+// ---------- Opiniones de clientes ----------
+let reviewsPromise;
+export function getReviews() {
+  reviewsPromise ??= fetch('/api/reviews').then((r) => {
+    if (!r.ok) throw new Error('No se pudieron cargar las opiniones');
+    return r.json();
+  }).then((d) => d.reviews);
+  return reviewsPromise;
+}
+export const stars = (n) => `<span class="stars" role="img" aria-label="${n} de 5 estrellas">${[1, 2, 3, 4, 5].map((i) =>
+  `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" class="${i <= n ? 'on' : ''}"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="currentColor"/></svg>`).join('')}</span>`;
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+export const shortDate = (iso) => { const d = new Date(String(iso).replace(' ', 'T') + 'Z'); return isNaN(d) ? '' : `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+export function reviewCard(r, { reveal = true } = {}) {
+  return `
+    <article class="review${reveal ? ' reveal' : ''}${r.image ? '' : ' no-photo'}">
+      ${r.image
+        ? `<div class="review-img"><img src="${esc(r.image)}" alt="Foto de ${esc(r.name)} con su prenda Mabx" loading="lazy"></div>`
+        : `<div class="review-quote" aria-hidden="true">${emblem(30)}<span>“</span></div>`}
+      <div class="review-body">
+        ${stars(r.rating)}
+        <p class="review-msg">${esc(r.message)}</p>
+        <p class="review-who"><strong>${esc(r.name)}</strong>${r.created_at ? `<span>${shortDate(r.created_at)}</span>` : ''}</p>
+      </div>
+    </article>`;
+}
+
 // ---------- Encabezado y pie de página ----------
 export function renderChrome(active) {
   document.body.dataset.page = active;
@@ -147,6 +174,7 @@ export function renderChrome(active) {
             ${link('/', 'Inicio', 'inicio')}
             ${link('/catalogo', 'Catálogo', 'catalogo')}
             ${link('/catalogo?ofertas=1', 'Ofertas', 'ofertas')}
+            ${link('/opiniones', 'Opiniones', 'opiniones')}
             ${link('#contacto', 'Contacto', 'contacto')}
           </nav>
           <a href="/carrito" class="cart-btn" aria-label="Ver carrito">${ICONS.cart()}<span class="cart-count" data-cart-count>0</span></a>
@@ -189,7 +217,7 @@ export function renderChrome(active) {
           </div>
           <div class="reveal">
             <h2>Tienda</h2>
-            <div class="links"><a href="/catalogo">Catálogo</a><a href="/catalogo?ofertas=1">Ofertas</a><a href="/carrito">Carrito</a></div>
+            <div class="links"><a href="/catalogo">Catálogo</a><a href="/catalogo?ofertas=1">Ofertas</a><a href="/opiniones">Opiniones</a><a href="/carrito">Carrito</a></div>
           </div>
           <div class="reveal">
             <h2>Contacto</h2>
@@ -227,3 +255,42 @@ export function toast(html) {
 export function errorBox(target, msg = 'No pudimos cargar los productos. Revisa tu conexión e intenta de nuevo.') {
   target.innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(msg)}</div>`;
 }
+
+// ---------- Fotos: se convierten a WEBP en el navegador antes de subirlas ----------
+// (las usan el panel y el formulario de opiniones de los clientes)
+export const PHOTO_MAX_SIDE = 1600;   // lado más largo, en píxeles
+export const PHOTO_QUALITY = 0.82;
+
+const loadBitmap = async (blob) => {
+  try { return await createImageBitmap(blob, { imageOrientation: 'from-image' }); } catch { /* sigue con <img> */ }
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return img;
+  } finally { URL.revokeObjectURL(url); }
+};
+
+// Devuelve un File .webp (o .jpg si el navegador no sabe crear WEBP, p. ej. Safari antiguo).
+export async function optimizePhoto(blob, name = 'foto') {
+  let src;
+  try { src = await loadBitmap(blob); } catch { throw new Error('No se pudo leer la imagen'); }
+  const w = src.width, h = src.height;
+  const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(w, h));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(w * scale);
+  canvas.height = Math.round(h * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; // las transparencias de PNG quedan en blanco, como el fondo de las fotos
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
+  src.close?.();
+  const encode = (type) => new Promise((ok) => canvas.toBlob(ok, type, PHOTO_QUALITY));
+  let out = await encode('image/webp');
+  if (!out || out.type !== 'image/webp') out = await encode('image/jpeg');
+  if (!out) throw new Error('No se pudo convertir la imagen');
+  const ext = out.type === 'image/webp' ? 'webp' : 'jpg';
+  return new File([out], `${String(name).replace(/\.[^.]+$/, '') || 'foto'}.${ext}`, { type: out.type });
+}
+

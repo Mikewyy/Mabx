@@ -1,7 +1,7 @@
 // Utilidades del panel de administración de Mabx.
-import { ICONS, esc } from '/assets/js/common.js';
+import { ICONS, esc, optimizePhoto } from '/assets/js/common.js';
 
-export { esc };
+export { esc, optimizePhoto };
 
 export const AICONS = {
   products: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>',
@@ -11,6 +11,7 @@ export const AICONS = {
   ban: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 6.5l11 11" stroke="currentColor" stroke-width="1.8"/></svg>',
   restore: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  reviews: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 9.5h7M8.5 12.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
   eye: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>',
   logout: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   x: '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
@@ -43,6 +44,7 @@ export function renderSidebar(active) {
       <a href="/" class="logo" title="Ver la tienda" aria-label="Mabx, ver la tienda">${ICONS.logo(24)}<span>MABX</span></a>
       <nav class="snav-list" aria-label="Panel">
         ${link('/admin/productos', 'productos', AICONS.products, 'Productos')}
+        ${link('/admin/opiniones', 'opiniones', AICONS.reviews, 'Opiniones')}
         ${link('/admin/config', 'config', AICONS.settings, 'Configuración', 'Ajustes')}
       </nav>
       <div class="side-foot">
@@ -50,6 +52,8 @@ export function renderSidebar(active) {
         <button type="button" class="snav" id="logout" title="Cerrar sesión" aria-label="Cerrar sesión">${AICONS.logout}<span>Cerrar sesión</span></button>
       </div>
     </aside>`;
+  // Opiniones de clientes esperando aprobación: globito en el menú
+  refreshPendingBadge();
   document.getElementById('logout').addEventListener('click', async () => {
     await fetch('/api/logout', { method: 'POST' });
     location.href = '/admin/';
@@ -59,47 +63,12 @@ export function renderSidebar(active) {
 // ---------- Fotos: se convierten a WEBP en el navegador antes de subirlas ----------
 // Así una foto de celular de varios MB queda en ~100-300 KB, ocupa menos espacio
 // en el almacenamiento y la tienda carga más rápido.
-export const PHOTO_MAX_SIDE = 1600;   // lado más largo, en píxeles
-export const PHOTO_QUALITY = 0.82;
-
-const loadBitmap = async (blob) => {
-  try { return await createImageBitmap(blob, { imageOrientation: 'from-image' }); } catch { /* sigue con <img> */ }
-  const url = URL.createObjectURL(blob);
-  try {
-    const img = new Image();
-    img.src = url;
-    await img.decode();
-    return img;
-  } finally { URL.revokeObjectURL(url); }
-};
-
-// Devuelve un File .webp (o .jpg si el navegador no sabe crear WEBP, p. ej. Safari antiguo).
-export async function optimizePhoto(blob, name = 'foto') {
-  let src;
-  try { src = await loadBitmap(blob); } catch { throw new Error('No se pudo leer la imagen'); }
-  const w = src.width, h = src.height;
-  const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(w, h));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(w * scale);
-  canvas.height = Math.round(h * scale);
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff'; // las transparencias de PNG quedan en blanco, como el fondo de las fotos
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
-  src.close?.();
-  const encode = (type) => new Promise((ok) => canvas.toBlob(ok, type, PHOTO_QUALITY));
-  let out = await encode('image/webp');
-  if (!out || out.type !== 'image/webp') out = await encode('image/jpeg');
-  if (!out) throw new Error('No se pudo convertir la imagen');
-  const ext = out.type === 'image/webp' ? 'webp' : 'jpg';
-  return new File([out], `${String(name).replace(/\.[^.]+$/, '') || 'foto'}.${ext}`, { type: out.type });
-}
-
 // Optimiza y sube una foto; devuelve la URL /media/... ya guardada.
-export async function uploadPhoto(blob, name) {
+export async function uploadPhoto(blob, name, folder = 'productos') {
   const file = await optimizePhoto(blob, name);
   const fd = new FormData();
   fd.append('file', file);
+  fd.append('folder', folder);
   const { url } = await api('/api/admin/upload', { method: 'POST', form: fd });
   return url;
 }
@@ -112,4 +81,16 @@ export function toast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+export async function refreshPendingBadge() {
+  try {
+    const { reviews } = await api('/api/admin/reviews');
+    const n = reviews.filter((r) => r.status === 'pendiente').length;
+    const a = document.querySelector('.snav[href="/admin/opiniones"]');
+    if (!a) return n;
+    a.querySelector('.nbadge')?.remove();
+    if (n) a.insertAdjacentHTML('beforeend', `<span class="nbadge" aria-label="${n} pendientes">${n}</span>`);
+    return n;
+  } catch { return 0; }
 }

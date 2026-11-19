@@ -151,6 +151,24 @@
       </div>
     </section>
 
+    <!-- Opiniones: solo aparece si hay opiniones aprobadas -->
+    <section class="section tight" id="opiniones" aria-labelledby="reviews-title" hidden>
+      <div class="wrap">
+        <div class="section-head reveal">
+          <div>
+            <p class="eyebrow">Clientes Mabx</p>
+            <h2 id="reviews-title">Opiniones</h2>
+          </div>
+          <a href="/opiniones" class="link-ac">Ver todas <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+        <div class="reviews reviews-home" id="reviews"></div>
+        <div class="reviews-cta reveal">
+          <p>¿Ya entrenas con Mabx? Cuéntanos cómo te fue.</p>
+          <a href="/opiniones#opinar" class="btn btn-gh">Deja tu opinión</a>
+        </div>
+      </div>
+    </section>
+
     <section class="section tight" aria-labelledby="promo-title">
       <div class="wrap">
         <div class="promo reveal">
@@ -170,7 +188,7 @@
   <div data-footer></div>
 
   <script type="module">
-    import { renderChrome, getCatalog, productCard, esc, errorBox, emblem, EMBLEM_PATHS, ICONS, COLLECTION_TILES } from '/assets/js/common.js';
+    import { renderChrome, getCatalog, productCard, esc, errorBox, emblem, EMBLEM_PATHS, ICONS, COLLECTION_TILES, getReviews, reviewCard } from '/assets/js/common.js';
     renderChrome('inicio');
 
     // Brújulas decorativas (hero y cierre) a partir del mismo dibujo del logo
@@ -194,6 +212,13 @@
         if (img && img !== t.image) tile.querySelector('img').src = img;
         if (title) tile.querySelector('h3').textContent = title;
       }
+    }).catch(() => {});
+
+    // Opiniones aprobadas (las 6 más recientes)
+    getReviews().then((list) => {
+      if (!list.length) return;
+      document.getElementById('reviews').innerHTML = list.slice(0, 6).map((r) => reviewCard(r)).join('');
+      document.getElementById('opiniones').hidden = false;
     }).catch(() => {});
 
     const grid = document.getElementById('featured');
