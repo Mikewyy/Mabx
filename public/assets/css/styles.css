@@ -190,13 +190,17 @@ body[data-page="inicio"] .site-header:not(.scrolled):not(:has(.main-nav.open)) {
 
 /* ---------- Colecciones Mujer / Hombre ---------- */
 .cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
-.cat-tile { position: relative; isolation: isolate; display: flex; align-items: flex-end; min-height: 440px; padding: 36px; border-radius: var(--r-lg); overflow: hidden; color: var(--ac-ink);
-  background: var(--well); transition: transform .35s var(--ease-out); }
-.cat-tile img { position: absolute; z-index: -1; right: 2%; top: 50%; height: 84%; width: auto; max-width: 55%; object-fit: contain; translate: 0 -50%;
-  clip-path: inset(2.5% round 10px); transition: transform .6s var(--ease-out); }
-.cat-tile .num { position: absolute; top: 28px; left: 36px; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .2em; color: rgba(10, 10, 10, .7); }
+/* Estudio oscuro, igual que las fotos de producto (logo MABX y brújula detrás de la prenda) */
+.cat-tile { position: relative; isolation: isolate; display: flex; align-items: flex-end; min-height: 440px; padding: 36px; border-radius: var(--r-lg); overflow: hidden; color: var(--tx);
+  background: radial-gradient(90% 110% at 76% 42%, #29292B 0%, #161617 52%, #0E0E0F 100%); border: 1px solid var(--bd);
+  transition: transform .35s var(--ease-out), border-color .25s ease; }
+.cat-tile img { position: absolute; z-index: -1; right: 0; top: 50%; height: 100%; width: auto; max-width: 62%; object-fit: contain; object-position: right center; translate: 0 -50%;
+  /* el borde izquierdo de la foto se funde con el fondo (también si el dueño sube su propia foto) */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 22%); mask-image: linear-gradient(90deg, transparent 0%, #000 22%);
+  transition: transform .6s var(--ease-out); }
+.cat-tile .num { position: absolute; top: 28px; left: 36px; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .2em; color: var(--mut); }
 .cat-tile h3 { font-size: clamp(52px, 5.2vw, 76px); font-weight: 800; line-height: .85; margin-bottom: 16px; }
-.cat-tile .cta { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px 0 18px; border-radius: 999px; background: var(--ac-ink); color: var(--tx); font-weight: 700; font-size: 14px; }
+.cat-tile .cta { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px 0 18px; border-radius: 999px; background: var(--tx); color: var(--ac-ink); font-weight: 700; font-size: 14px; }
 .cat-tile .cta i { width: 30px; height: 30px; border-radius: 50%; background: var(--ac); color: var(--ac-ink); display: inline-flex; align-items: center; justify-content: center; transition: transform .3s var(--ease-out); }
 
 /* ---------- Historia: la brújula ---------- */
@@ -552,7 +556,7 @@ body[data-page="inicio"] .site-header:not(.scrolled):not(:has(.main-nav.open)) {
   .card:hover .pimg img { transform: scale(1.09); }
   .card:hover .go { background: var(--ac); border-color: var(--ac); color: var(--ac-ink); transform: translateX(2px); }
   .perks-bar li:hover .perk-ic { background: var(--ac); color: var(--ac-ink); transform: translateY(-2px); }
-  .cat-tile:hover { transform: translateY(-4px); }
+  .cat-tile:hover { transform: translateY(-4px); border-color: var(--ac-line); }
   .cat-tile:hover img { transform: scale(1.03); }
   .cat-tile:hover .cta i { transform: translateX(4px); }
   .qchip:not([aria-pressed="true"]):hover { border-color: rgba(255, 255, 255, .45); background: rgba(255, 255, 255, .06); }
@@ -653,7 +657,7 @@ body[data-page="inicio"] .site-header:not(.scrolled):not(:has(.main-nav.open)) {
 
   .cats { grid-template-columns: 1fr; gap: 14px; }
   .cat-tile { min-height: 280px; padding: 24px; }
-  .cat-tile img { height: 78%; max-width: 50%; right: 4%; }
+  .cat-tile img { max-width: 60%; }
   .cat-tile .num { top: 20px; left: 24px; }
   .cat-tile h3 { font-size: 46px; }
 
@@ -756,3 +760,13 @@ body[data-page="inicio"] .site-header:not(.scrolled):not(:has(.main-nav.open)) {
   .apill { position: relative; }
   .apill::after { content: ''; position: absolute; inset: -5px 0; }
 }
+
+/* ---------- Página 404 ---------- */
+.not-found { min-height: calc(100svh - var(--hh) - 120px); }
+.not-found .nf-code { justify-content: center; letter-spacing: .3em; margin-bottom: 18px; }
+.not-found h1 { font-size: clamp(48px, 7vw, 88px); line-height: .9; }
+.motion .not-found .page-emblem .em-arc { stroke-dasharray: 1; animation: mx-draw .6s var(--ease-out) both; }
+/* La aguja gira buscando el norte */
+.motion .not-found .page-emblem .em-star { transform-origin: 24px 24px; animation: mx-needle .6s var(--ease-settle) .3s both, mx-seek 3.2s var(--ease-in-out) 1.2s 1; }
+@keyframes mx-seek { 30% { transform: rotate(-24deg); } 60% { transform: rotate(14deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .not-found .page-emblem * { animation: none !important; } }

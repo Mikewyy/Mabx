@@ -28,7 +28,7 @@
           <button type="button" class="qchip" data-quick="todo">Todo</button>
           <button type="button" class="qchip" data-quick="mujer">Mujer</button>
           <button type="button" class="qchip" data-quick="hombre">Hombre</button>
-          <button type="button" class="qchip" data-quick="ofertas">Ofertas</button>
+          <button type="button" class="qchip" data-quick="ofertas" data-offers>Ofertas</button>
         </div>
       </div>
     </section>
@@ -42,7 +42,7 @@
         <form class="fbody" id="filter-form">
           <fieldset class="fgroup">
             <legend class="ftitle">Mostrar</legend>
-            <label class="flabel"><input type="checkbox" name="ofertas"> Solo ofertas</label>
+            <label class="flabel" data-offers><input type="checkbox" name="ofertas"> Solo ofertas</label>
             <label class="flabel"><input type="checkbox" name="disponibles"> Solo disponibles</label>
           </fieldset>
           <fieldset class="fgroup">
@@ -90,7 +90,7 @@
   <div data-footer></div>
 
   <script type="module">
-    import { renderChrome, getCatalog, productCard, esc, money, finalPrice, discountPct, errorBox, emblem, EMBLEM_PATHS, ICONS } from '/assets/js/common.js';
+    import { renderChrome, getCatalog, productCard, esc, money, finalPrice, discountPct, errorBox, emblem, EMBLEM_PATHS, ICONS, hasOffers } from '/assets/js/common.js';
     const params = new URLSearchParams(location.search);
     renderChrome(params.get('ofertas') ? 'ofertas' : 'catalogo');
 
@@ -122,7 +122,8 @@
     const catName = new Map(categories.map((c) => [c.id, c.name]));
 
     // Construir filtros con los datos reales
-    document.getElementById('f-cats').innerHTML = categories
+    // Solo categorías que tienen prendas (una categoría vacía llevaría a "0 productos")
+    document.getElementById('f-cats').innerHTML = categories.filter((c) => products.some((p) => p.category_id === c.id))
       .map((c) => `<label class="flabel"><input type="checkbox" name="cat" value="${c.id}" data-slug="${esc(c.slug)}"> ${esc(c.name)}</label>`).join('');
     const sizes = [...new Set(products.flatMap((p) => p.sizes))]
       .sort((a, b) => (SIZE_ORDER.indexOf(a) + 1 || 99) - (SIZE_ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
@@ -131,7 +132,7 @@
     priceInput.max = maxPrice; priceInput.value = maxPrice;
 
     // Filtros que vienen en la dirección (ej. /catalogo?ofertas=1, ?cat=camisetas o ?genero=mujer)
-    if (params.get('ofertas')) form.ofertas.checked = true;
+    if (params.get('ofertas') && hasOffers(data)) form.ofertas.checked = true;
     if (params.get('cat')) form.querySelectorAll('[name=cat]').forEach((i) => { if (i.dataset.slug === params.get('cat')) i.checked = true; });
     if (params.get('genero')) form.querySelectorAll('[name=genero]').forEach((i) => { if (i.value === params.get('genero')) i.checked = true; });
 

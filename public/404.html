@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Página no encontrada · Mabx</title>
+  <meta name="description" content="La página que buscas no existe. Vuelve a la tienda de ropa deportiva Mabx.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0A0A0A">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/motion.js"></script>
+</head>
+<body>
+  <div data-header></div>
+  <!-- Se muestra para cualquier dirección que no existe (wrangler.jsonc → assets.not_found_handling) -->
+  <main class="wrap cart-empty not-found">
+    <div class="box">
+      <svg class="page-emblem" viewBox="0 0 48 48" fill="none" aria-hidden="true" data-emblem></svg>
+      <p class="eyebrow plain nf-code" data-enter style="--d:.05s">Error 404</p>
+      <h1 data-enter style="--d:.1s">Perdiste el <span class="accent">norte</span></h1>
+      <p data-enter style="--d:.16s">La página que buscas no existe o cambió de lugar. La brújula te lleva de vuelta a la tienda.</p>
+      <div class="cart-empty-actions" data-enter style="--d:.22s">
+        <a href="/" class="btn btn-ac btn-lg">Ir al inicio <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a href="/catalogo" class="btn btn-gh btn-lg">Ver catálogo</a>
+      </div>
+    </div>
+  </main>
+  <div data-footer></div>
+
+  <script type="module">
+    import { renderChrome, EMBLEM_PATHS } from '/assets/js/common.js';
+    renderChrome('404');
+    document.querySelectorAll('[data-emblem]').forEach((svg) => {
+      svg.innerHTML = EMBLEM_PATHS.arcs.map((d) => `<path class="em-arc" d="${d}" stroke="currentColor" stroke-linecap="round" pathLength="1"/>`).join('')
+        + `<path class="em-star" d="${EMBLEM_PATHS.star}"/>`;
+    });
+  </script>
+</body>
+</html>

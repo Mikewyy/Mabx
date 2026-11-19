@@ -9,7 +9,9 @@
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // Direcciones que no existen muestran public/404.html (con el diseño de la tienda)
+    "not_found_handling": "404-page"
   },
   "d1_databases": [
     {

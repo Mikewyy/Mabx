@@ -33,8 +33,8 @@ export const productImg = (p, i = 0) => p.images[i] || p.images[0] || PLACEHOLDE
 let catalogPromise;
 // Recuadros de colección del inicio: valores por defecto si el dueño no los cambió en el panel
 export const COLLECTION_TILES = [
-  { key: 'mujer', title: 'Mujer', image: '/img/demo/camisaDama2.webp' },
-  { key: 'hombre', title: 'Hombre', image: '/img/demo/hombre-negra.webp' },
+  { key: 'mujer', title: 'Mujer', image: '/img/coleccion-mujer.webp' },
+  { key: 'hombre', title: 'Hombre', image: '/img/coleccion-hombre.webp' },
 ];
 
 export function getCatalog() {
@@ -122,6 +122,9 @@ export function productCard(p, { compact = false, cta = true, reveal = true } = 
     </article>`;
 }
 
+// Hay ofertas si alguna prenda disponible tiene precio de oferta o hay promociones activas
+export const hasOffers = ({ products, promotions }) => products.some((p) => p.available && p.sale_price != null) || promotions.length > 0;
+
 // ---------- Encabezado y pie de página ----------
 export function renderChrome(active) {
   document.body.dataset.page = active;
@@ -167,6 +170,13 @@ export function renderChrome(active) {
     // Escape cierra el menú del celular y devuelve el foco al botón
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('open')) { closeMenu(); btn.focus(); } });
   }
+
+  // Sin ofertas, los accesos a "Ofertas" (menú, pie, botones marcados con data-offers) se esconden
+  // para no llevar al cliente a una página vacía
+  getCatalog().then((data) => {
+    if (hasOffers(data)) return;
+    document.querySelectorAll('a[href*="ofertas=1"], [data-offers]').forEach((el) => { el.hidden = true; });
+  }).catch(() => {});
 
   const footer = document.querySelector('[data-footer]');
   if (footer) {
