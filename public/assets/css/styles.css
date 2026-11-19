@@ -200,8 +200,8 @@ body[data-page="inicio"] .site-header:not(.scrolled):not(:has(.main-nav.open)) {
   transition: transform .6s var(--ease-out); }
 .cat-tile .num { position: absolute; top: 28px; left: 36px; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .2em; color: var(--mut); }
 .cat-tile h3 { font-size: clamp(52px, 5.2vw, 76px); font-weight: 800; line-height: .85; margin-bottom: 16px; }
-.cat-tile .cta { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px 0 18px; border-radius: 999px; background: var(--tx); color: var(--ac-ink); font-weight: 700; font-size: 14px; }
-.cat-tile .cta i { width: 30px; height: 30px; border-radius: 50%; background: var(--ac); color: var(--ac-ink); display: inline-flex; align-items: center; justify-content: center; transition: transform .3s var(--ease-out); }
+.cat-tile .cta { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px 0 18px; border-radius: 999px; background: var(--ac); color: var(--ac-ink); font-weight: 700; font-size: 14px; }
+.cat-tile .cta i { width: 30px; height: 30px; border-radius: 50%; background: var(--ac-ink); color: var(--ac); display: inline-flex; align-items: center; justify-content: center; transition: transform .3s var(--ease-out); }
 
 /* ---------- Historia: la brújula ---------- */
 .story { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(40px, 6vw, 96px); align-items: center; }
